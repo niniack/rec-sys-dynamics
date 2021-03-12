@@ -1,1 +1,0 @@
-This folder contains the framework for simulating user dynamics of the recommendation system 
