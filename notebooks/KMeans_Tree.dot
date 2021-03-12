@@ -1,0 +1,28 @@
+digraph Tree {
+node [shape=box, style="filled", color="black"] ;
+0 [label="Film-Noir <= 1.375\nentropy = 0.974\nsamples = 488\nvalue = [198, 290]\nclass = 1", fillcolor="#c0e0f7"] ;
+1 [label="Documentary <= 2.875\nentropy = 0.493\nsamples = 297\nvalue = [32, 265]\nclass = 1", fillcolor="#51a9e8"] ;
+0 -> 1 [labeldistance=2.5, labelangle=45, headlabel="True"] ;
+2 [label="entropy = 0.0\nsamples = 251\nvalue = [0, 251]\nclass = 1", fillcolor="#399de5"] ;
+1 -> 2 ;
+3 [label="Western <= 2.55\nentropy = 0.887\nsamples = 46\nvalue = [32, 14]\nclass = 0", fillcolor="#f0b890"] ;
+1 -> 3 ;
+4 [label="entropy = 0.811\nsamples = 12\nvalue = [3, 9]\nclass = 1", fillcolor="#7bbeee"] ;
+3 -> 4 ;
+5 [label="entropy = 0.602\nsamples = 34\nvalue = [29, 5]\nclass = 0", fillcolor="#e9975b"] ;
+3 -> 5 ;
+6 [label="Western <= 2.125\nentropy = 0.56\nsamples = 191\nvalue = [166, 25]\nclass = 0", fillcolor="#e99457"] ;
+0 -> 6 [labeldistance=2.5, labelangle=-45, headlabel="False"] ;
+7 [label="Documentary <= 3.25\nentropy = 0.996\nsamples = 43\nvalue = [23, 20]\nclass = 0", fillcolor="#fcefe5"] ;
+6 -> 7 ;
+8 [label="entropy = 0.826\nsamples = 27\nvalue = [7, 20]\nclass = 1", fillcolor="#7ebfee"] ;
+7 -> 8 ;
+9 [label="entropy = 0.0\nsamples = 16\nvalue = [16, 0]\nclass = 0", fillcolor="#e58139"] ;
+7 -> 9 ;
+10 [label="Musical <= 2.86\nentropy = 0.213\nsamples = 148\nvalue = [143, 5]\nclass = 0", fillcolor="#e68540"] ;
+6 -> 10 ;
+11 [label="entropy = 0.773\nsamples = 22\nvalue = [17, 5]\nclass = 0", fillcolor="#eda673"] ;
+10 -> 11 ;
+12 [label="entropy = 0.0\nsamples = 126\nvalue = [126, 0]\nclass = 0", fillcolor="#e58139"] ;
+10 -> 12 ;
+}
