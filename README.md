@@ -12,9 +12,9 @@ All python packages needed to run the notebooks can be found within requirements
 
 ## Authors
 
-Abdur Rehman (@ar4366)
-Prajna Soni (@soniprajna)
-Nishant Aswani (@niniack)
+* Abdur Rehman (@ar4366)
+* Prajna Soni (@soniprajna)
+* Nishant Aswani (@niniack)
 
 ## License
 
