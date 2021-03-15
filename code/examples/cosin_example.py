@@ -7,7 +7,7 @@ from pprintpp import pprint as prettyprint
 # Make sure you are correctly appending the path
 # Otherwise the imports will not work!
 sys.path.append("..")
-from algorithm.cosin import CosinSimilarity
+from src.algorithm.cosin import CosinSimilarity
 
 from lenskit.datasets import ML100K
 
