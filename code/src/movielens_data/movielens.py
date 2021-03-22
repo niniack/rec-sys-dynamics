@@ -88,7 +88,7 @@ class movielens:
     # Function to split movie genres into dummy variables
     def get_dummy_genres(self):
         genres_list = self.movies['genres'].str.split(pat='|') # convert string to list of string
-        self.movies2 = pd.concat([movies.drop(['genres','title'],axis=1), genres_list.str.join('|').str.get_dummies()], axis=1) # concatenate dummy variables df of genres
+        self.movies2 = pd.concat([self.movies.drop(['genres','title'],axis=1), genres_list.str.join('|').str.get_dummies()], axis=1) # concatenate dummy variables df of genres
         self.genres = self.movies2.columns.tolist()[1:]
         return self.movies2
     

@@ -1,6 +1,7 @@
 """Example script to interact with the movielens and data class
 """
 import sys
+import pandas as pd
 
 ### IMPORTANT ###
 # Make sure you are correctly appending the path
@@ -9,11 +10,14 @@ sys.path.append("..")
 from src.movielens_data.movielens import movielens
 from src.movielens_data.movielens import cluster
 
-from lenskit.datasets import ML100K
+#from lenskit.datasets import ML100K
 
-movielens = ML100K("../../ml-100k")
-ratings = movielens.ratings
-movies = movielens.movies
+#movielens = ML100K("../../ml-100k")
+#ratings = movielens.ratings
+#movies = movielens.movies
+
+movies = pd.read_csv("../../datasets/movielens-small/movies.csv")
+ratings = pd.read_csv("../../datasets/movielens-small/ratings.csv")
 
 ratings.head()
 movies.head()
@@ -32,7 +36,7 @@ dataUI = data.UserItem()
 # UI = User-Item matrix
 # GR = Average rating for each genre for each user
 # wGR = Weighted genre ratings for each user
-dataSVD_UI = data.SVDmatrix(3, dataset = 'UI)
+dataSVD_UI = data.SVDmatrix(3, dataset = 'UI')
 
 # Instantiate clustering object
 UI_clusters = cluster(dataSVD_UI)
