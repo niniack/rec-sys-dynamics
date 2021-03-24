@@ -11,7 +11,7 @@ Check out the Python notebooks
 All python packages needed to run the notebooks can be found within requirements.txt
 
 ## Authors
-
+Research conducted for the Traffic Flow Dynamics and Computations Lab @ New York University Abu Dhabi (NYUAD)
 * Abdur Rehman (@ar4366)
 * Prajna Soni (@soniprajna)
 * Nishant Aswani (@niniack)
