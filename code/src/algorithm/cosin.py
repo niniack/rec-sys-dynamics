@@ -45,6 +45,12 @@ class CosinSimilarity(Recommender, Predictor):
     def __str__(self):
         return "CosinSimilarity"
 
+    def get_num_users(self):
+        return len(self.user_index_)
+
+    def get_num_items(self):
+        return len(self.item_index_)
+
     # Store the ratings matrix in sparse format and generate similarity matrix
     def fit(self, ratings, **kwargs):
 
@@ -61,6 +67,23 @@ class CosinSimilarity(Recommender, Predictor):
 
         # Reduce candidate space to unseen items
         self.selector.fit(ratings)
+
+    # Update the similarity matrix
+    def update(self):
+
+        # Calculate similarites from sparse matrix
+        self.sim_matrix_ = cosine_similarity(self.rating_matrix_)
+
+        # Convert to dataframe for selector fit
+
+        user_item_df = pd.DataFrame(
+            data={
+                "user": [x + 1 for x in self.rating_matrix_.nonzero()[0]],
+                "item": [x + 1 for x in self.rating_matrix_.nonzero()[1]],
+            }
+        )
+
+        self.selector.fit(user_item_df)
 
     # Add a user to the ratings matrix
     def add_user(self, user_id):
@@ -213,5 +236,3 @@ class CosinSimilarity(Recommender, Predictor):
             "normalized_popularity": normalized_popularity,
         }
         return pd.DataFrame(results, index=items)
-
-        return None
