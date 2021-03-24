@@ -45,6 +45,12 @@ class CosinSimilarity(Recommender, Predictor):
     def __str__(self):
         return "CosinSimilarity"
 
+    def get_num_users(self):
+        return len(self.user_index_)
+
+    def get_num_items(self):
+        return len(self.item_index_)
+
     # Store the ratings matrix in sparse format and generate similarity matrix
     def fit(self, ratings, **kwargs):
 
