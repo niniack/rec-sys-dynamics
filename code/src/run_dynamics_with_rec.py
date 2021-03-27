@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import dirichlet
+from scipy.stats import beta as beta_dist
 import matplotlib.pyplot as plt
 import math
 
@@ -24,18 +25,29 @@ algo_cosin.fit(ratings)
 
 
 def get_mu(v1, v2):
-    mu = np.dot(v1,v2)
+    mu = np.dot(v1,np.transpose(v2))
+    if mu<0.0000000001000000001:
+        mu = 0.0000000001000000001
     return mu
 
 def get_alpha_beta(mu, sigma=10**(-5)):
-    a1 = (mu**2)*(((1-mu)/sigma**2)-(1/mu))
+    a1 = ((1-mu)/(sigma**2)-(1/mu))*mu**2
     b1 = a1*((1/mu)- 1)
     return a1, b1
 
 def get_Vui(u, i, p, a):
+    global p_curr, a_curr
     B_mu = get_mu(p[u-1],a[i-1])
     alpha, beta = get_alpha_beta(B_mu)
-    return float(np.random.beta(alpha,beta))
+    # if alpha<0 or beta<0:
+    #     print(p[u-1])
+    #     print(a[i-1])
+    #     print(B_mu)
+    #     print(alpha)
+    #     print(beta)
+    #     p_curr = p[u-1]
+    #     a_curr = a[i-1]
+    return float(beta_dist.rvs(alpha, beta))
 
 def get_nui(mu = 0.98):
     alpha, beta = get_alpha_beta(mu)
@@ -96,6 +108,7 @@ def get_rank_func(recs, func_type = "sigmoid"):
 
 def initialize_known_utility(num_u, num_i, total_sim_steps, new_i, new_u, alpha_user=1, alpha_item = 100, K_pref_dimensions = 20):
     
+    
     n_i = num_i + (total_sim_steps*new_i)
     n_u = num_u + (total_sim_steps*new_u)
     
@@ -108,8 +121,12 @@ def initialize_known_utility(num_u, num_i, total_sim_steps, new_i, new_u, alpha_
     V_df = V_df.drop([0], axis = 0)
     P_df = P_df.drop([0], axis = 0)
     
-    p = dirichlet.rvs([alpha_user]*K_pref_dimensions, size=n_u)
-    a = dirichlet.rvs([alpha_item]*K_pref_dimensions, size=n_i)
+    
+    u_p = dirichlet.rvs([alpha_user]*K_pref_dimensions, size=1)
+    u_a = dirichlet.rvs([alpha_item]*K_pref_dimensions, size=1)
+    
+    p = dirichlet.rvs(u_p[0]*10, size=n_u)
+    a = dirichlet.rvs(u_a[0]*0.1, size=n_i)
     
     for item in range(1,n_i+1):
         for user in range(1, n_u+1):
@@ -140,7 +157,13 @@ def env_step(P_df, prob_explore,num_rec):
         func = func_rank*user_utilities_ordered
         max_index = np.where(func == max(func))
         item_2_rec = int(recs.index[max_index][0])
-        rating = recs.loc[item_2_rec]["predicted_ratings"]
+        rating_flip = np.random.choice([True, False], p = [0.1,0.9])
+        if rating_flip:
+            pos_ratings = [1,2,3,4,5]
+            pos_ratings.remove(recs.loc[item_2_rec]["predicted_ratings"])
+            rating = np.random.choice(pos_ratings)
+        else:
+            rating = recs.loc[item_2_rec]["predicted_ratings"]
         inter_users.append(user);inter_items.append(item_2_rec); inter_ratings.append(rating)
     
     interactions_by_iteration = [inter_users, inter_items, inter_ratings]
@@ -152,17 +175,11 @@ def add_users(num_u, simulation_step, new_u):
     if simulation_step!=0:
         for user in [*range(num_u + (simulation_step-1)*new_u + 1, num_u + (simulation_step)*new_u + 1,1)]:
             algo_cosin.add_user(user)
-        return [*range(num_u + (simulation_step-1)*new_u + 1, num_u + (simulation_step)*new_u + 1,1)]
-    else:
-        return []
             
 def add_items(num_i, simulation_step, new_i):
     if simulation_step!=0:
         for item in [*range(num_i + (simulation_step-1)*new_i + 1, num_i + (simulation_step)*new_i + 1,1)]:
             algo_cosin.add_item(item)
-        return [*range(num_i + (simulation_step-1)*new_i + 1, num_i + (simulation_step)*new_i + 1,1)]
-    else: 
-        return[]
         
 def add_interactions(list_of_interactions):
     algo_cosin.add_interactions(list_of_interactions[0], list_of_interactions[1], list_of_interactions[2])
@@ -175,7 +192,7 @@ num_u = len(movielens.users)
 num_i = len(movielens.movies)
 # num_i = 5
 num_rec = 30
-simulation_steps = 10
+simulation_steps = 100
 new_i = 10
 new_u = 10
 
@@ -197,21 +214,10 @@ for t in range(simulation_steps):
     
     # interactions is arranged as a 3xn array of arrays, where n is the number of interactions. 
     # In intercations, dimension 1 is the users that interact, dimension 2 is the items that they interact with, dimension 3 is the ratings given.
-    new_users = add_users(num_u, t, new_i)
-    new_items = add_items(num_i, t, new_i)
-    
-    try:
-        interactions[0].extend(new_users); interactions[1].extend(np.random.choice([*range(1,new_items[0],1)], size=(len(new_users)),replace=False)); interactions[2].extend(np.random.choice([1,2,3,4,5], size = (len(new_users))))
-        interactions[0].extend(np.random.choice([*range(1,new_users[0],1)], size=(len(new_items)),replace=False)); interactions[1].extend(new_items); interactions[2].extend(np.random.choice([1,2,3,4,5], size = (len(new_items))))
-    except IndexError:
-        print('First itteration no new users or items added to interactions')
-        
-    
+    add_users(num_u, t, new_i)
+    add_items(num_i, t, new_i)
     add_interactions(interactions)
-    interactions.append([t]*len(interactions[0]))
-    interactions_df = pd.DataFrame(np.transpose(interactions), columns = ['user', 'item', 'rating', 'timestamp'])
-    ratings = ratings.append(interactions_df, ignore_index=True)
-    algo_cosin.fit(ratings)
+    algo_cosin.update()
     
     P_df_t = Full_Known_Utilities.iloc[0:(num_u+(t*new_u)),0:(num_i+(t*new_i))]
     
@@ -221,6 +227,9 @@ for t in range(simulation_steps):
     
     
     interactions = env_step(P_df_t, prob_explore,num_rec)
+    
+    if np.isnan(sum(interactions[2])):
+        print("There are nan ratings being added")
     
     print("Completed iteration number: ", t+1)
     print("Time taken: ", datetime.now() - StartTime)
