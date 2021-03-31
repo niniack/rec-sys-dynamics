@@ -116,66 +116,16 @@ class movielens:
 # CLASS TO CLUSTER AND EVALUATE DATA
 class cluster:
 
-    # constructor taking in dataset (UI matrix), number of maximum clusters
-    def __init__(self, UI):
+    # constructor taking in dataset (genre_ratings), number of maximum clusters
+    def __init__(self, data):
         # assign input rating matrix
-        self.UI = UI
+        self.data = data 
         # Enable logging
         self._logger = logging.getLogger(__name__)
         
     def __str__(self):
         return 'Data Object'
     
-    # perform dimensionality reduction to n latent features using SVD
-    def SVD(self, n):
-        SVD =  TruncatedSVD(n_components = n)
-        self.data = pd.DataFrame(SVD.fit_transform(self.UI))
-        self.data.index += 1
-        return self.data
-        
-    def addRating(self, userId, movieId, rating, show=False):
-        # check if user exists
-        if userId in self.UI.index:
-            # check if movie exists
-            if movieId in self.UI.columns:
-                # ensure movie has not already been rated
-                if self.UI.loc[userId,movieId] > 0:
-                    self._logger.error('Rating of %f already exists for user and item.' % (self.UI.loc[userId,movieId]))
-                    return None
-                self.UI.loc[userId,movieId] = rating
-            # if user exists and movie does not
-            else:
-                # create new column for new item, initialise with 0
-                self._logger.warning('Movie does not exist. New movie item created, initialised to 0, and new rating added.')
-                self.UI[movieId] = 0
-                # add new rating to
-                self.UI.loc[userId,movieId] = rating
-        # if user does not exist
-        else:
-            userId = len(self.UI)+1
-            self._logger.warning('User does not exist. New user (userId # %d) created, initialised to 0, and new rating added.'%(userId))
-            # create new row for new user, initialise with 0
-            self.UI.loc[userId] = np.zeros(len(self.UI.columns))
-            # check if movie exists
-            if movieId in self.UI.columns:
-                # ensure movie has not already been rated
-                if self.UI.loc[userId,movieId] > 0:
-                    self._logger.error('Rating of %f already exists for user and item.' % (self.UI.loc[userId,movieId]))
-                    return None
-                self.UI.loc[userId,movieId] = rating
-            # if movie does not exist
-            else:
-                # create new column for new item, initialise with 0
-                self._logger.warning('Movie does not exist. New movie item created, initialised to 0, and new rating added.')
-                self.UI[movieId] = 0
-                # add new rating to
-                self.UI.loc[userId,movieId] = rating
-        # show the updated UI matrix
-        if show:
-            print(self.UI)
-        
-        
-            
     # perform kmeans clustering for n clusters on data and return a dataframe with user and cluster number 
     def kmeans(self, n):
         

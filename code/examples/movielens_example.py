@@ -44,7 +44,7 @@ UI_clusters = cluster(dataSVD_UI)
 ### IMPORTANT: Make sure you train the model/clusters before plotting them. 
 # perform GMM clustering to get cluster values and cluster probabilities
 # df = 'pred' for cluster predictions, 'proba' for clusters + probabilities, 'full' for latent values+clusters+probas
-cluster_probas = UI_clusters.gmm(n=3,covariance_type="full",df=proba)
+cluster_probas = UI_clusters.gmm(n=3,covariance_type="full",df='proba')
 
 
 # plot data and clusters (True for colour-coded clusters, if False it will just plot latent features in monotone)
