@@ -10,45 +10,41 @@ sys.path.append("..")
 from src.movielens_data.movielens import movielens
 from src.movielens_data.movielens import cluster
 
-#from lenskit.datasets import ML100K
+# Import Lenskit Dataset
+from lenskit.datasets import ML100K
 
-#movielens = ML100K("../../ml-100k")
-#ratings = movielens.ratings
-#movies = movielens.movies
+ML100K = ML100K("/Users/pvs262/Library/Python/3.8/lib/python/site-packages/lenskit/data/ml-100k")
+ratings = ML100K.ratings
+movies = ML100K.movies
 
-movies = pd.read_csv("../../datasets/movielens-small/movies.csv")
-ratings = pd.read_csv("../../datasets/movielens-small/ratings.csv")
-
-ratings.head()
-movies.head()
-
-# Instantiate movielens object
+# Instantiate MovieLens object
 data = movielens(movies, ratings)
+# Get User-Item Interaction Matrix from MovieLens object
+dataUI = data.UserItem() 
 
-# Creation of different datasets for SVD (weighted, absolute)
+# Instantiate Clustering object
+ML_clusters = cluster(dataUI)
 
-# User-Item Interaction Matrix
-dataUI = data.UserItem()
+# One-time set up to choose the number of latent features we want. 
+# If you want to change the number of latent features in the reduced dataset, you need to use cluster.SVD(n) again.
+ML_clusters.SVD(3)
 
-# SVD reduced User-Item Interaction Matrix
+# Function to add user/item with ID
+ML_clusters.addUserID(len(dataUI)+1) 
+ML_clusters.addItemID(len(dataUI.columns)+1)
 
-# enter number of latent features you want, and which dataset you want the SVD performed on (default is complete User-Movie matrix)
-# UI = User-Item matrix
-# GR = Average rating for each genre for each user
-# wGR = Weighted genre ratings for each user
-dataSVD_UI = data.SVDmatrix(3, dataset = 'UI')
+# Function to add user/item automatically (it returns the ID of the new user/item)
+ML_clusters.addUser() 
+ML_clusters.addItem()
 
-# Instantiate clustering object
-UI_clusters = cluster(dataSVD_UI)
+# Function to add ratings for EXISTING users and items where cluster.addRating(user_id, item_id, rating)
+ML_clusters.addRating(4,2,3)
 
-### IMPORTANT: Make sure you train the model/clusters before plotting them. 
-# perform GMM clustering to get cluster values and cluster probabilities
-# df = 'pred' for cluster predictions, 'proba' for clusters + probabilities, 'full' for latent values+clusters+probas
-cluster_probas = UI_clusters.gmm(n=3,covariance_type="full",df='proba')
+### IMPORTANT ### 
+# Make sure you train the model/clusters before plotting them using cluster.gmm(n, covariance_type, df)m
+# cluster.gmm(n, covariance_type, df) calculates SVD to find updated reduced dataset and then clusters
+# returns cluster number for each user and the probability of belonging to each of the n clusters
 
+gmm_cluster_probas = ML_clusters.gmm(n=3,covariance_type="full",df='proba')
+print(gmm_cluster_probas)
 
-# plot data and clusters (True for colour-coded clusters, if False it will just plot latent features in monotone)
-# These functions currently only work in JupyterNotebook.                            
-#UI_clusters.plotScatter(True, 'kmeans')
-#UI_clusters.plotScatter(True, 'gmm')                            
-                            

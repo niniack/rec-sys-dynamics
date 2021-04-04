@@ -26,11 +26,9 @@ class movielens:
     def __init__(self, movies, ratings):
         
         # assign input rating matrix
-        self.movies = movies
+        self.movies = movies.drop(columns = ['release','vidrelease','imdb'], axis = 1)
         self.ratings = ratings
-        
-        # Identify genres in dataset
-        self.get_dummy_genres()
+        self.genres = self.movies.columns.tolist()[1:]
         
         # Enable logging
         self._logger = logging.getLogger(__name__)
@@ -44,74 +42,22 @@ class movielens:
         
     # Function to return dataframe of user (rows) and movie (columns) ratings - a user-item interaction matrix
     def UserItem(self):
-        self.UI_matrix = self.ratings.merge(self.movies,on='movieId', how='left')
-        self.UI_matrix = self.UI_matrix.pivot_table(index='userId',columns='movieId',values='rating')
+        self.UI_matrix = self.ratings.merge(self.movies,on='item', how='left')
+        self.UI_matrix = self.UI_matrix.pivot_table(index='user',columns='item',values='rating')
         self.UI_matrix = self.UI_matrix.fillna(0)
-        return self.UI_matrix 
+        return self.UI_matrix
     
-    # Function to get the genre ratings
-    def UserGenreRatings(self):
-        self.genre_ratings = pd.DataFrame()
-        for genre in self.get_genres():        
-            genre_movies = self.movies[self.movies['genres'].str.contains(genre)]
-            avg_genre_votes_per_user = self.ratings[self.ratings['movieId'].isin(genre_movies['movieId'])].loc[:, ['userId', 'rating']].groupby(['userId'])['rating'].mean().round(2)
-            self.genre_ratings = pd.concat([self.genre_ratings, avg_genre_votes_per_user], axis=1)    
-        self.genre_ratings = self.genre_ratings.fillna(0)
-        self.genre_ratings.columns = self.get_genres()
-        return self.genre_ratings
-    
-    # Function to get Weighted genre ratings for each user
-    # weighted by number of genres a user has rated divided by total number of movies rated
-    def w_UserGenreRatings(self): 
-        w1 = pd.DataFrame()
-        for genre in self.get_genres():
-            temp = self.UserGenreCounts()[genre].div(self.TotalUserRatings()['total_ratings'])
-            w1[genre] = temp
-        self.wGR_matrix = dataGR.mul(w1)
-        return self.wGR_matrix
-
-    # Function to get the number of ratings per genre per user
-    def UserGenreCounts(self):
-        self.genre_counts = pd.DataFrame()
-        for genre in self.get_genres():        
-            genre_movies = self.movies[self.movies['genres'].str.contains(genre) ]
-            genre_counts_per_user = self.ratings[self.ratings['movieId'].isin(genre_movies['movieId'])].loc[:, ['userId', 'rating']].groupby(['userId'])['rating'].count()
-            self.genre_counts = pd.concat([self.genre_counts, genre_counts_per_user], axis=1).fillna(0)   
-        self.genre_counts.columns = self.genres
-        return self.genre_counts
-
     # Function to count total number of movies a user has rated
     def TotalUserRatings(self):
-        total_user_ratings = self.ratings.groupby(['userId']).count().drop(columns = ['movieId','timestamp'], axis = 1)
+        total_user_ratings = self.ratings.groupby(['user']).count().drop(columns = ['item','timestamp'], axis = 1)
         total_user_ratings.columns = ['total_ratings']
         return total_user_ratings
 
-    # Function to split movie genres into dummy variables
-    def get_dummy_genres(self):
-        genres_list = self.movies['genres'].str.split(pat='|') # convert string to list of string
-        self.movies2 = pd.concat([self.movies.drop(['genres','title'],axis=1), genres_list.str.join('|').str.get_dummies()], axis=1) # concatenate dummy variables df of genres
-        self.genres = self.movies2.columns.tolist()[1:]
-        return self.movies2
     
-    def SVDmatrix(self, n, dataset='UI'):
-        if dataset == 'UI':
-            self.UserItem()
-            self.UI_SVD =  TruncatedSVD(n_components = n)
-            self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
-            self.UI.index += 1
-            return self.UI
-        elif dataset == 'GR':
-            self.UserGenreRatings()
-            self.GR_SVD =  TruncatedSVD(n_components = n)
-            self.GR = pd.DataFrame(self.GR_SVD.fit_transform(self.genre_ratings))
-            self.GR.index += 1
-            return self.GR
-        elif dataset == 'wGR':
-            self.w_UserGenreRatings()
-            self.wGR_SVD =  TruncatedSVD(n_components = n)
-            self.wGR = pd.DataFrame(self.wGR_SVD.fit_transform(self.wGR_matrix))
-            self.wGR.index += 1
-            return self.wGR
+    def SVD(self, n, dataset='UI'):
+        self.UserItem()
+        self.UI_SVD =  TruncatedSVD(n_components = n)
+        self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
     
 # CLASS TO CLUSTER AND EVALUATE DATA
 class cluster:
@@ -131,50 +77,61 @@ class cluster:
         SVD =  TruncatedSVD(n_components = n)
         self.data = pd.DataFrame(SVD.fit_transform(self.UI))
         self.data.index += 1
-        return self.data
+        return None
         
-    def addRating(self, userId, movieId, rating, show=False):
-        # check if user exists
-        if userId in self.UI.index:
-            # check if movie exists
-            if movieId in self.UI.columns:
-                # ensure movie has not already been rated
-                if self.UI.loc[userId,movieId] > 0:
-                    self._logger.error('Rating of %f already exists for user and item.' % (self.UI.loc[userId,movieId]))
-                    return None
-                self.UI.loc[userId,movieId] = rating
-            # if user exists and movie does not
-            else:
-                # create new column for new item, initialise with 0
-                self._logger.warning('Movie does not exist. New movie item created, initialised to 0, and new rating added.')
-                self.UI[movieId] = 0
-                # add new rating to
-                self.UI.loc[userId,movieId] = rating
-        # if user does not exist
-        else:
-            userId = len(self.UI)+1
-            self._logger.warning('User does not exist. New user (userId # %d) created, initialised to 0, and new rating added.'%(userId))
-            # create new row for new user, initialise with 0
-            self.UI.loc[userId] = np.zeros(len(self.UI.columns))
-            # check if movie exists
-            if movieId in self.UI.columns:
-                # ensure movie has not already been rated
-                if self.UI.loc[userId,movieId] > 0:
-                    self._logger.error('Rating of %f already exists for user and item.' % (self.UI.loc[userId,movieId]))
-                    return None
-                self.UI.loc[userId,movieId] = rating
-            # if movie does not exist
-            else:
-                # create new column for new item, initialise with 0
-                self._logger.warning('Movie does not exist. New movie item created, initialised to 0, and new rating added.')
-                self.UI[movieId] = 0
-                # add new rating to
-                self.UI.loc[userId,movieId] = rating
-        # show the updated UI matrix
-        if show:
-            print(self.UI)
+    def addRating(self, user_id, item_id, rating):
+        # Check that requirements are met
+        assert (user_id in self.UI.index) == True, "User ID does not exist!"
+        assert (item_id in self.UI.columns) == True, "Movie ID does not exist!"
+        assert (self.UI.loc[user_id,item_id] == 0), "User-Item interaction already exists!"
+        assert rating > 0, "Rating needs to be [1,5]!"
+        assert rating < 5, "Rating needs to be [1,5]!"
         
+        self.UI.loc[user_id,item_id] = rating
+        return None
         
+    # Function adds user and returns the ID of the new user
+    def addUser(self):
+        # create new row for new user (ID = len(self.UI)+1), initialise with 0
+        self.UI.loc[len(self.UI)+1] = np.zeros(len(self.UI.columns))
+        return len(self.UI)
+        
+    # Function adds movie and returns the ID of the new movie
+    def addItem(self):
+        # create new column for new movie (ID = len(self.UI.columns)+1), initialise with 0
+        self.UI[len(self.UI.columns)+1] = 0
+        return len(self.UI.columns)
+    
+    '''
+    # I DON'T THINK WE SHOULD ADD USERS OR MOVIES BY ID AS IT CAN CAUSE A LOT OF CONFUSION DOWN THE LINE.
+    # IT MIGHT BE BETTER TO CREATE NEW USERS AND MOVIES IN ORDER AND RETURNING THE ID OF THE NEW ITEMS
+    '''
+    
+    # Function adds user and returns the ID of the new user
+    def addUserID(self, user_id):
+        # Check if user_id to be added already exists
+        try:
+            assert (user_id in self.UI.index) == False, "User ID already exists!"
+        except AssertionError as e:
+            print(e)
+            exit(1)
+            
+        # create new row for new user (ID = len(self.UI)+1), initialise with 0
+        self.UI.loc[user_id] = np.zeros(len(self.UI.columns))
+        return user_id
+        
+    # Function adds movie and returns the ID of the new movie
+    def addItemID(self, item_id):
+    # Check if item_id to be added already exists
+        try:
+            assert (item_id in self.UI.columns) == False, "Item ID already exists!"
+        except AssertionError as e:
+            print(e)
+            exit(1)
+            
+        # create new column for new movie (ID = len(self.UI.columns)+1), initialise with 0
+        self.UI[item_id] = 0
+        return item_id
             
     # perform kmeans clustering for n clusters on data and return a dataframe with user and cluster number 
     def kmeans(self, n):
@@ -183,10 +140,13 @@ class cluster:
             self._logger.warning('Number of clusters not provided')
             return None
         
+        # update SVD for dimensionality reducation
+        self.SVD(len(self.data.columns))
+        
         km = KMeans(n_clusters=n, init='k-means++', max_iter=300, n_init=10, random_state=0)
         self.km_pred = km.fit_predict(self.data)
         self.km_pred = pd.DataFrame(self.km_pred, columns = ['cluster'])
-        self.km_pred.index += 1 # adjust index to match userId
+        self.km_pred.index += 1 # adjust index to match user
         #clustered_data = pd.concat([self.data, km_pred], axis=1)
         return self.km_pred
     
@@ -196,6 +156,9 @@ class cluster:
         if n is None:
             self._logger.warning('Number of maximum clusters not provided')
             return None
+        
+        # update SVD for dimensionality reducation
+        self.SVD(len(self.data.columns))
         
         # variable scope limited to function
         km_scores= []
@@ -272,6 +235,9 @@ class cluster:
             self._logger.warning('Return df format not provided. Default is "pred".')
             return None
         
+        # update SVD for dimensionality reducation
+        self.SVD(len(self.data.columns))
+        
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
         self.gmm_pred = gmm.fit_predict(self.data)
         self.gmm_pred = pd.DataFrame(self.gmm_pred, columns = ['cluster'])
@@ -283,12 +249,12 @@ class cluster:
         elif df == 'proba':
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
-            proba.index += 1 # adjust index to match userId
+            proba.index += 1 # adjust index to match user
             return proba
         elif df == 'all':
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
-            proba.index += 1 # adjust index to match userId
+            proba.index += 1 # adjust index to match user
             full = self.data.join(proba ,how='left')
             return full
         else:
@@ -305,6 +271,9 @@ class cluster:
         if covariance_type is None:
             self._logger.warning('Covariance Type for Gaussian Mixture Model not provided. Default is "full"')
             return None
+        
+        # update SVD for dimensionality reducation
+        self.SVD(len(self.data.columns))
         
         # variable scope limited to function
         gmm_aic = []
@@ -414,4 +383,63 @@ class cluster:
             self._logger.error("Input dataset contains less than 2 features. Insufficient data to plot.")
             return None
         
+
+'''
+APPENDIX OF PREVIOUS FUNCTIONS:
+
+From MovieLens Class:
+    
+    # Function to get the genre ratings
+    def UserGenreRatings(self):
+        self.genre_ratings = pd.DataFrame()
+        for genre in self.genres:
+            genre_movies = self.movies[self.movies['genres'].str.contains(genre)]
+            avg_genre_votes_per_user = self.ratings[self.ratings['item'].isin(genre_movies['item'])].loc[:, ['user', 'rating']].groupby(['user'])['rating'].mean().round(2)
+            self.genre_ratings = pd.concat([self.genre_ratings, avg_genre_votes_per_user], axis=1)
+        self.genre_ratings = self.genre_ratings.fillna(0)
+        self.genre_ratings.columns = self.get_genres()
+        return self.genre_ratings
+    
+    # Function to get Weighted genre ratings for each user
+    # weighted by number of genres a user has rated divided by total number of movies rated
+    def w_UserGenreRatings(self):
+        w1 = pd.DataFrame()
+        for genre in self.genres:
+            temp = self.UserGenreCounts()[genre].div(self.TotalUserRatings()['total_ratings'])
+            w1[genre] = temp
+        self.wGR_matrix = dataGR.mul(w1)
+        return self.wGR_matrix
+
+    # Function to get the number of ratings per genre per user
+    def UserGenreCounts(self):
+        self.genre_counts = pd.DataFrame()
+        for genre in self.genres:
+            genre_movies = self.movies[self.movies['genres'].str.contains(genre) ]
+            genre_counts_per_user = self.ratings[self.ratings['item'].isin(genre_movies['item'])].loc[:, ['user', 'rating']].groupby(['user'])['rating'].count()
+            self.genre_counts = pd.concat([self.genre_counts, genre_counts_per_user], axis=1).fillna(0)
+        self.genre_counts.columns = self.genres
+        return self.genre_counts
+        
+    def SVD(self, dataset):
+        if dataset == 'UI':
+            self.UserItem()
+            self.UI_SVD =  TruncatedSVD(n_components = n)
+            self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
+            self.UI.index += 1
+            return self.UI
+        elif dataset == 'GR':
+            self.UserGenreRatings()
+            self.GR_SVD =  TruncatedSVD(n_components = n)
+            self.GR = pd.DataFrame(self.GR_SVD.fit_transform(self.genre_ratings))
+            self.GR.index += 1
+            return self.GR
+        elif dataset == 'wGR':
+            self.w_UserGenreRatings()
+            self.wGR_SVD =  TruncatedSVD(n_components = n)
+            self.wGR = pd.DataFrame(self.wGR_SVD.fit_transform(self.wGR_matrix))
+            self.wGR.index += 1
+            return self.wGR
+'''
+
+
 
