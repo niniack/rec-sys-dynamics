@@ -53,19 +53,19 @@ Total Initial Ratings = 10869/80000
 Movie_Lens_Recreation
 This is a replication of the movie lens dataset with biased communities 
 
-Number of Users: 963
+Number of Users: 943
 Percentage of Left Biased Users = 10%
 Percentage of Right Biased Users = 10%
 
 
-Number of Items: 1682
+Number of Items: 1683
 Percentage of Left Biased Items: 30%
 Percentage of Right Biased Items: 30%
 
 Total Number of Running Iterations: 100
-Number of Users Added Each Iteration: 2
-Number of Items Added Each Iteration 2
+Number of Users Added Each Iteration: 10
+Number of Items Added Each Iteration 10
 
-Total Initial Ratings = 10869/80000
+Total Initial Ratings = 100878/1587069
 -----------------------------------------------------------------------------------------
 
