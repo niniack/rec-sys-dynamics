@@ -18,7 +18,7 @@ ratings = movielens.ratings
 ratings.head()
 
 # Instantiate object
-algo = EASE()
+algo = CosinSimilarity()
 
 # Reduce the candidates space + build user-user cosin similarity matrix
 algo.fit(ratings)
@@ -62,15 +62,7 @@ for t in range(1, simulation_steps + 1):
 
     # Obtain recommendations for a new user
     random_user_for_recommendations = num_users + 1
-    recs = algo.recommend(random_user_for_recommendations)
-
-    # Sort recommendations
-
-    # recs = recs.sort_values(
-    #     by=["predicted_ratings", "normalized_popularity"], ascending=False
-    # )
-
-    recs = recs.sort_values(by=["score"], ascending=False)
+    recs = algo.recommend(random_user_for_recommendations, explore=False)
 
     # Print a few top recommendations
     print("Recommendations for User", random_user_for_recommendations, ": ")
