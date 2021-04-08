@@ -37,19 +37,19 @@ This dataset is for quick use testing. It contains equal bias on both sides
 
 
 Number of Users: 200
-Percentage of Left Biased Users = 10%
-Percentage of Right Biased Users = 10%
+Number of Left Biased Users = 20
+Number of Right Biased Users = 20
 
 
 Number of Items: 400
-Percentage of Left Biased Items: 30%
-Percentage of Right Biased Items: 30%
+Number of Left Biased Items: 120
+Number of Right Biased Items: 120
 
 Total Number of Running Iterations: 100
 Number of Users Added Each Iteration: 2
 Number of Items Added Each Iteration 2
 
-Total Initial Ratings = 10869/80000
+Total Initial Ratings = 5046/80000
 
 -----------------------------------------------------------------------------------------
 
