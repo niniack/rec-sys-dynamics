@@ -10,11 +10,8 @@ import numpy as np
 from scipy.stats import dirichlet
 from scipy.stats import beta as beta_dist
 import matplotlib.pyplot as plt
-import math
-
 import sys
-from pprintpp import pprint as prettyprint
-from datetime import datetime
+
 
 
 def get_mu(v1, v2):
@@ -90,14 +87,15 @@ def heatmap(df):
     columns"""
     X,Y = calc_df_mesh(df)
     c = plt.pcolormesh(X, Y, df.values.T, cmap = 'gist_yarg')
-    plt.colorbar(c)    
+    plt.colorbar(c)
+
 
 ratings = pd.DataFrame(columns = ['user','item','rating','timestamp'])
 
-percent_lu = 0.1
-percent_ru = 0.1
-percent_lm = 0.3
-percent_rm = 0.3
+number_lu = 94
+number_ru = 94
+number_lm = 505
+number_rm = 505
 prob_biased_rating = 0.2
 prob_unbiased_rating = 0.045
 
@@ -114,6 +112,18 @@ new_i = 10
 users = np.arange(943)
 movies = np.arange(1682)
 
+if number_lu+number_ru>len(users):
+    print('Error! User Proportion Exceed Total Number of Users.')
+    sys.exit()
+    
+if number_lm+number_rm>len(movies):
+    print('Error! Item Proportion Exceeds Total Number of Items.')
+    sys.exit()
+    
+if type(number_lu) != int or type(number_ru) != int or type(number_rm) != int or type(number_lm) != int:
+    print('Error! User or Item Proportions Are Not Integers As Expected By The Script.')
+    sys.exit()
+
 data = np.zeros((len(users), len(movies)))
 data_1 = np.zeros(((len(users)+(new_u*simulation_steps)),(len(movies)+(new_i*simulation_steps))))
 
@@ -129,22 +139,17 @@ u_a_left = dirichlet.rvs(alpha_for_left, size=1)
 u_a_right = dirichlet.rvs(alpha_for_right, size=1)
 u_a_unbiased = dirichlet.rvs(alpha_for_unbiased_item, size=1)
 
-p_left = dirichlet.rvs(u_p_left[0], size=round(len(users)*percent_lu))
-p_right = dirichlet.rvs(u_p_right[0], size=round(len(users)*percent_ru))
-p_unbiased = dirichlet.rvs(u_p_unbiased[0]*10, size=round(len(users)-(len(users)*(percent_ru+percent_lu))))
+p_left = dirichlet.rvs(u_p_left[0], size=number_lu)
+p_right = dirichlet.rvs(u_p_right[0], size=number_ru)
+p_unbiased = dirichlet.rvs(u_p_unbiased[0]*10, size=len(users)-number_lu-number_ru)
 p_new = dirichlet.rvs(u_p_unbiased[0]*10, size=new_u*simulation_steps)
 p = np.concatenate((p_left, p_unbiased,p_right,p_new), axis=0)
 
-
-
-
-a_left = dirichlet.rvs(u_a_left[0], size=round(len(movies)*percent_lm))
-a_right = dirichlet.rvs(u_a_right[0], size=round(len(movies)*percent_rm))
-a_unbiased = dirichlet.rvs(u_a_unbiased[0]*0.1, size=round(len(movies)-(len(movies)*(percent_rm+percent_lm))))
+a_left = dirichlet.rvs(u_a_left[0], size=number_lm)
+a_right = dirichlet.rvs(u_a_right[0], size=number_rm)
+a_unbiased = dirichlet.rvs(u_a_unbiased[0]*0.1, size=len(movies)-number_lm-number_rm)
 a_new = dirichlet.rvs(u_a_unbiased[0]*0.1, size=new_i*simulation_steps)
 a = np.concatenate((a_left, a_unbiased,a_right,a_new), axis = 0)
-
-
 
 for u in np.arange(1,(len(users)+(new_u*simulation_steps))+1,1):
     for m in np.arange(1, (len(movies)+(new_i*simulation_steps))+1,1):
@@ -153,22 +158,22 @@ for u in np.arange(1,(len(users)+(new_u*simulation_steps))+1,1):
         known_proportion = get_nui()
         P_df.loc[u][m] = Vui*known_proportion
         if m<= len(movies) and u<= len(users):
-            if u <= percent_lu*len(users) and m <= percent_lm*len(movies):
+            if u <= number_lu and m <= number_lm:
                 if prob_biased_rating >= np.random.rand():
                     r = np.random.choice([4,5])
                     ratings_df.loc[u,m] = r
                     ratings = ratings.append({'user':u,'item':m, 'rating':r, 'timestamp':0}, ignore_index=True)
-            elif u <= percent_lu*len(users) and m > len(movies)-(percent_rm*len(movies)):
+            elif u <= number_lu and m > len(movies)-number_rm:
                 if prob_biased_rating >= np.random.rand():
                     r = np.random.choice([1,2])
                     ratings_df.loc[u,m] = r
                     ratings = ratings.append({'user':u,'item':m, 'rating':r, 'timestamp':0}, ignore_index=True)
-            elif u > len(users)-(percent_ru*len(users)) and m <= percent_lm*len(movies):
+            elif u > len(users)-number_ru and m <= number_lm:
                 if prob_biased_rating >= np.random.rand():
                     r = np.random.choice([1,2])
                     ratings_df.loc[u,m] = r
                     ratings = ratings.append({'user':u,'item':m, 'rating':r, 'timestamp':0}, ignore_index=True)
-            elif u > len(users)-(percent_ru*len(users)) and m > len(movies)-(percent_rm*len(movies)):
+            elif u > len(users)-number_ru and m > len(movies)-number_rm:
                 if prob_biased_rating >= np.random.rand():
                     r = np.random.choice([4,5])
                     ratings_df.loc[u,m] = r
@@ -180,7 +185,10 @@ for u in np.arange(1,(len(users)+(new_u*simulation_steps))+1,1):
                     ratings = ratings.append({'user':u,'item':m, 'rating':r, 'timestamp':0}, ignore_index=True)
                
             
-
+heatmap(P_df)
+plt.savefig('P_df_plot.png', dpi=300)
+heatmap(ratings_df)
+plt.savefig('ratings_matrix_plot.png', dpi=300)
 
 
 
