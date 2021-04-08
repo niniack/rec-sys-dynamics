@@ -99,7 +99,7 @@ class EASE(SparseBasedAlgo):
         self.B = B
         self.score = self.rating_matrix_.dot(B)
 
-    def recommend(self, user_id, candidates=None, ratings=None):
+    def recommend(self, user_id, explore=False, candidates=None, ratings=None):
 
         # Reduce candidate space and store candidates with item ID
         if candidates is None:
@@ -109,6 +109,13 @@ class EASE(SparseBasedAlgo):
 
         # Predict ratings and scores for all unseen items
         prediction_score_df = self.predict_for_user(user_index, candidates)
+
+        if explore:
+            pass
+        else:
+            prediction_score_df = prediction_score_df.sort_values(
+                by=["score"], ascending=False
+            )
 
         return prediction_score_df
 
