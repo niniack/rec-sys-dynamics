@@ -52,12 +52,47 @@ class movielens:
         total_user_ratings = self.ratings.groupby(['user']).count().drop(columns = ['item','timestamp'], axis = 1)
         total_user_ratings.columns = ['total_ratings']
         return total_user_ratings
+    
+    # Function to get the genre ratings
+    def UserGenreRatings(self):
+        self.genre_ratings = pd.DataFrame()
+        for genre in self.genres:
+            genre_movies = self.movies.loc[self.movies[genre] == 1]
+            avg_genre_votes_per_user = self.ratings[self.ratings['item'].isin(genre_movies.index)].loc[:, ['user', 'rating']].groupby(['user'])['rating'].mean().round(2)
+            #print(avg_genre_votes_per_user)
+            self.genre_ratings = pd.concat([self.genre_ratings, avg_genre_votes_per_user], axis=1)
+        self.genre_ratings = self.genre_ratings.fillna(0)
+        self.genre_ratings.columns = self.get_genres()
+        return self.genre_ratings
+    
+    # Function to get Weighted genre ratings for each user
+    # weighted by number of genres a user has rated divided by total number of movies rated
+    def w_UserGenreRatings(self):
+        w1 = pd.DataFrame()
+        for genre in self.genres:
+            temp = self.UserGenreCounts()[genre].div(self.TotalUserRatings()['total_ratings'])
+            w1[genre] = temp
+        self.wGR_matrix = self.UserGenreRatings().mul(w1)
+        return self.wGR_matrix
 
+    # Function to get the number of ratings per genre per user
+    def UserGenreCounts(self):
+        genre_counts = pd.DataFrame()
+        for genre in self.genres:
+            genre_movies = self.movies.loc[self.movies[genre] == 1]
+            genre_counts_per_user = self.ratings[self.ratings['item'].isin(genre_movies.index)].loc[:, ['user', 'rating']].groupby(['user'])['rating'].count()
+            #print(genre_counts_per_user)
+            genre_counts = pd.concat([genre_counts, genre_counts_per_user], axis=1)
+        genre_counts = genre_counts.fillna(0)
+        genre_counts.columns = self.get_genres()
+        return genre_counts
     
     def SVD(self, n, dataset='UI'):
         self.UserItem()
         self.UI_SVD =  TruncatedSVD(n_components = n)
         self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
+        self.UI.index += 1
+        return self.UI
     
 # CLASS TO CLUSTER AND EVALUATE DATA
 class cluster:
