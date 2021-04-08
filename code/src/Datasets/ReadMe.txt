@@ -4,6 +4,8 @@ This file contains information on all the different datasets available in this d
 
 creating_datasets.py is the python script for making the datasets, the variables are self explanatory in the script
 
+For help accessing these datasets please go to the file accessing_datasets_help.py in the src folder
+
 -----------------------------------------------------------------------------------------
 
 
@@ -54,18 +56,20 @@ Movie_Lens_Recreation
 This is a replication of the movie lens dataset with biased communities 
 
 Number of Users: 943
-Percentage of Left Biased Users = 10%
-Percentage of Right Biased Users = 10%
+Number of Left Biased Users = 94
+Number of Right Biased Users = 94
 
 
 Number of Items: 1683
-Percentage of Left Biased Items: 30%
-Percentage of Right Biased Items: 30%
+Number of Left Biased Items: 504
+Number of Right Biased Items: 504
 
 Total Number of Running Iterations: 100
 Number of Users Added Each Iteration: 10
 Number of Items Added Each Iteration 10
 
-Total Initial Ratings = 100878/1587069
+Total Initial Ratings = 100850/1587069
 -----------------------------------------------------------------------------------------
+
+
 
