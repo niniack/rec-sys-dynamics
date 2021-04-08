@@ -12,7 +12,7 @@ For help accessing these datasets please go to the file accessing_datasets_help.
 
 -----------------------------------------------------------------------------------------
 
-Every individual dataset is contained in a folder and has two files:
+Every individual dataset is contained in a folder and has four useful files:
 - ratings.parquet.gzip ----- The sparse representation of ratings
 Column = user, item, rating, timestamp
 Row = Interaction 
@@ -21,6 +21,10 @@ Row = Interaction
 - Utility_Matrix.pkl ----- The full utility matrix for users and items including the items and users that will be added over time
 Column = Item_Id
 Row = User_Id
+
+- P_df_Plot.png ----- This is a plot of the heat map of the dataset's complete utility matrix
+
+- ratings_matrix_plot.png ----- This is a plot of the heat map of the dataset's initial utility matrix
 
 -----------------------------------------------------------------------------------------
 
