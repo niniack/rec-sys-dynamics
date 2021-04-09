@@ -17,13 +17,13 @@ ratings = movielens.ratings
 ratings.head()
 
 # Instantiate object
-algo_cosin = CosinSimilarity()
+algo = CosinSimilarity()
 
 # Reduce the candidates space + build user-user cosin similarity matrix
-algo_cosin.fit(ratings)
+algo.fit(ratings)
 
-num_users = algo_cosin.get_num_users()
-num_items = algo_cosin.get_num_items()
+num_users = algo.get_num_users()
+num_items = algo.get_num_items()
 print("Initial number of users: " + str(num_users))
 print("Initial number of items: " + str(num_items))
 
@@ -35,32 +35,30 @@ first_time_step = True
 for t in range(1, simulation_steps + 1):
 
     # Add a new user and item
-    algo_cosin.add_user(num_users + t)
-    algo_cosin.add_item(num_items + t)
+    algo.add_user(num_users + t)
+    algo.add_item(num_items + t)
 
-    # Add two random interactions
     # np.random.randint(low is inclusive, high is exclusive)
-    interactions = 2
-    random_users = np.random.randint(1, algo_cosin.get_num_users(), interactions)
-    random_items = np.random.randint(1, algo_cosin.get_num_items() + 1, interactions)
+    interactions = 10
+
+    # random_users = np.random.randint(
+    #     algo.get_num_users(), algo.get_num_users(), interactions
+    # )
+    random_users = np.full((interactions), num_users + 1)
+    random_items = np.random.randint(1, algo.get_num_items() + 1, interactions)
     random_ratings = np.random.randint(1, 6, interactions)
 
-    algo_cosin.add_interactions(
+    algo.add_interactions(
         random_users.tolist(), random_items.tolist(), random_ratings.tolist()
     )
 
     # Refit
-    algo_cosin.update()
+    algo.update()
 
     # Obtain recommendations for a new user
-    random_user_for_recommendations = num_users + t
-    recs = algo_cosin.recommend(random_user_for_recommendations)
-
-    # Sort recommendations
-    recs = recs.sort_values(
-        by=["predicted_ratings", "normalized_popularity"], ascending=False
-    )[["predicted_ratings", "normalized_popularity"]]
+    random_user_for_recommendations = num_users
+    recs = algo.recommend(random_user_for_recommendations, explore=False)
 
     # Print a few top recommendations
     print("Recommendations for User", random_user_for_recommendations, ": ")
-    prettyprint(recs.tail(30))
+    prettyprint(recs.head(10))
