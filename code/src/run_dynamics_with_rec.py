@@ -1,23 +1,22 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import dirichlet
-from scipy.stats import beta as beta_dist
-import matplotlib.pyplot as plt
 import math
 
-import sys
-from pprintpp import pprint as prettyprint
+import os
 from datetime import datetime
-
-#sys.path.append("..")
-
 from algorithm.cosin import CosinSimilarity
+import Datasets.Small_Test_Dataset as dataset
 
-from lenskit.datasets import ML100K
 
-# movielens = ML100K("./ml-100k")
-# ratings = movielens.ratings
-#ratings.head()
+def getRatingsData():
+    return pd.read_parquet(os.path.dirname(dataset.__file__)+'/ratings.parquet.gzip')
+
+def getUtilityData():
+    return pd.read_pickle(os.path.dirname(dataset.__file__)+'/utility_Matrix.pkl')
+
+
+ratings = getRatingsData()
+Full_Known_Utilities = getUtilityData()
 
 algo_cosin = CosinSimilarity()
 
@@ -51,14 +50,13 @@ def env_step(P_df, prob_explore,num_rec):
         func = func_rank*user_utilities_ordered
         max_index = np.where(func == max(func))
         item_2_rec = int(recs.index[max_index][0])
+        given_rating =  get_rating(P_df.loc[user], item_2_rec)
         rating_flip = np.random.choice([True, False], p = [0.1,0.9])
         if rating_flip:
             pos_ratings = [1,2,3,4,5]
-            pos_ratings.remove(recs.loc[item_2_rec]["predicted_ratings"])
-            rating = np.random.choice(pos_ratings)
-        else:
-            rating = recs.loc[item_2_rec]["predicted_ratings"]
-        inter_users.append(user);inter_items.append(item_2_rec); inter_ratings.append(rating)
+            pos_ratings.remove(given_rating)
+            given_rating = np.random.choice(pos_ratings)
+        inter_users.append(user);inter_items.append(item_2_rec); inter_ratings.append(given_rating)
     
     interactions_by_iteration = [inter_users, inter_items, inter_ratings]
         
@@ -78,7 +76,9 @@ def add_items(num_i, simulation_step, new_i):
 def add_interactions(list_of_interactions):
     algo_cosin.add_interactions(list_of_interactions[0], list_of_interactions[1], list_of_interactions[2])
 
-
+def get_rating(P_df_u_values, item):
+    return round(1 + ((P_df_u_values[item]-P_df_u_values.min())*(5-1))/(P_df_u_values.max()-P_df_u_values.min()))
+    
 
 
 num_u = 200
