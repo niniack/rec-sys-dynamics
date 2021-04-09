@@ -9,7 +9,6 @@ from pprintpp import pprint as prettyprint
 # Otherwise the imports will not work!
 sys.path.append("..")
 from src.algorithm.cosin import CosinSimilarity
-from src.algorithm.ease import EASE
 
 from lenskit.datasets import ML100K
 
@@ -49,10 +48,6 @@ for t in range(1, simulation_steps + 1):
     random_items = np.random.randint(1, algo.get_num_items() + 1, interactions)
     random_ratings = np.random.randint(1, 6, interactions)
 
-    print(random_users)
-    print(random_items)
-    print(random_ratings)
-
     algo.add_interactions(
         random_users.tolist(), random_items.tolist(), random_ratings.tolist()
     )
@@ -61,7 +56,7 @@ for t in range(1, simulation_steps + 1):
     algo.update()
 
     # Obtain recommendations for a new user
-    random_user_for_recommendations = num_users + 1
+    random_user_for_recommendations = num_users
     recs = algo.recommend(random_user_for_recommendations, explore=False)
 
     # Print a few top recommendations
