@@ -99,11 +99,26 @@ class EASE(SparseBasedAlgo):
         self.B = B
         self.score = self.rating_matrix_.dot(B)
 
+        # Convert to dataframe for selector fit
+        user_item_df = pd.DataFrame(
+            data={
+                "user": [x + 1 for x in self.rating_matrix_.nonzero()[0]],
+                "item": [x + 1 for x in self.rating_matrix_.nonzero()[1]],
+            }
+        )
+
+        # Reduce candidate space to unseen items
+        self.selector.fit(user_item_df)
+        self.selector.items_ = self.item_index_
+        self.selector.users_ = self.user_index_
+
     def recommend(self, user_id, explore=False, candidates=None, ratings=None):
 
         # Reduce candidate space and store candidates with item ID
         if candidates is None:
             candidates = self.selector.candidates(user_id, ratings)
+
+        print(candidates)
 
         (user_index,) = np.where(self.user_index_ == user_id)[0]
 
