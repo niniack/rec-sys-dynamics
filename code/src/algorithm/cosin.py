@@ -11,6 +11,7 @@ The required packages can be found in requirements.txt
 
 from .algo import SparseBasedAlgo
 
+from math import isnan
 import pandas as pd
 import numpy as np
 from lenskit import batch, topn, util
@@ -31,7 +32,7 @@ class CosinSimilarity(SparseBasedAlgo):
 
     """
 
-    def __init__(self, min_neighbors=1, min_sim=0, selector=None):
+    def __init__(self, min_neighbors=1, min_sim=0, alpha=0.5, selector=None):
 
         # Set selector
         if selector is None:
@@ -42,6 +43,9 @@ class CosinSimilarity(SparseBasedAlgo):
         # Set parameters
         self.min_neighbors = min_neighbors
         self.min_sim = min_sim
+
+        # Determines the weight given to normalized popularity
+        self.alpha = alpha
 
         # Enable logging
         _logger = logging.getLogger(__name__)
@@ -88,6 +92,8 @@ class CosinSimilarity(SparseBasedAlgo):
         )
 
         self.selector.fit(user_item_df)
+        self.selector.items_ = self.item_index_
+        self.selector.users_ = self.user_index_
 
     # Provide a recommendation of top "n" movies given "user"
     # The recommender uses the UnratedItemCandidateSelector by default and uses the ratings matrix
@@ -110,11 +116,14 @@ class CosinSimilarity(SparseBasedAlgo):
         )
 
         if explore:
-            pass
-        else:
-            prediction_score_df = prediction_score_df.sort_values(
-                by=["predicted_ratings", "normalized_popularity"], ascending=False
-            )
+            prediction_score_df = prediction_score_df[
+                (prediction_score_df["predicted_ratings"] == 0)
+                | (prediction_score_df["normalized_popularity"] < 0.2)
+            ]
+
+        prediction_score_df = prediction_score_df.sort_values(
+            by=["score"], ascending=False
+        )
 
         return prediction_score_df
 
@@ -162,16 +171,27 @@ class CosinSimilarity(SparseBasedAlgo):
             sum_of_all_similarities = i_raters_similarities.sum()
             predicted_ratings[i] = (
                 sum_of_product_of_similarities_and_ratings // sum_of_all_similarities
+                if sum_of_all_similarities
+                else 0
             )
 
         # minmax scale the popularity of each item
         normalized_popularity = np.interp(
             item_popularity, (item_popularity.min(), item_popularity.max()), (0, +1)
         )
-        score = np.multiply(normalized_popularity, predicted_ratings)
+        normalized_rating = np.interp(
+            predicted_ratings,
+            (predicted_ratings.min(), predicted_ratings.max()),
+            (0, +1),
+        )
+
+        score = np.add(
+            self.alpha * normalized_popularity, (1 - self.alpha) * normalized_rating
+        )
 
         results = {
             "predicted_ratings": predicted_ratings,
             "normalized_popularity": normalized_popularity,
+            "score": score,
         }
         return pd.DataFrame(results, index=items)
