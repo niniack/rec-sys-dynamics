@@ -92,10 +92,10 @@ def heatmap(df):
 
 ratings = pd.DataFrame(columns = ['user','item','rating','timestamp'])
 
-number_lu = 94
-number_ru = 94
-number_lm = 505
-number_rm = 505
+number_lu = 20
+number_ru = 20
+number_lm = 120
+number_rm = 120
 prob_biased_rating = 0.2
 prob_unbiased_rating = 0.045
 
@@ -105,12 +105,12 @@ alpha_for_right = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,100,100,100]
 alpha_for_unbiased_user = [1]*20
 alpha_for_unbiased_item = [100]*20
 simulation_steps = 100
-new_u = 10
-new_i = 10
+new_u = 2
+new_i = 2
 
 
-users = np.arange(943)
-movies = np.arange(1682)
+users = np.arange(200)
+movies = np.arange(400)
 
 if number_lu+number_ru>len(users):
     print('Error! User Proportion Exceed Total Number of Users.')
@@ -185,10 +185,7 @@ for u in np.arange(1,(len(users)+(new_u*simulation_steps))+1,1):
                     ratings = ratings.append({'user':u,'item':m, 'rating':r, 'timestamp':0}, ignore_index=True)
                
             
-heatmap(P_df)
-plt.savefig('P_df_plot.png', dpi=300)
-heatmap(ratings_df)
-plt.savefig('ratings_matrix_plot.png', dpi=300)
+
 
 
 
