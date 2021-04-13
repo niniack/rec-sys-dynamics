@@ -87,7 +87,7 @@ class movielens:
         genre_counts.columns = self.get_genres()
         return genre_counts
     
-    def SVD(self, n, dataset='UI'):
+    def svd(self, n, dataset='UI'):
         self.UserItem()
         self.UI_SVD =  TruncatedSVD(n_components = n)
         self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
@@ -108,31 +108,43 @@ class cluster:
         return 'Data Object'
     
     # perform dimensionality reduction to n latent features using SVD
-    def SVD(self, n):
+    def svd(self, n):
         SVD =  TruncatedSVD(n_components = n)
         self.data = pd.DataFrame(SVD.fit_transform(self.UI))
         self.data.index += 1
         return None
+    
+    # takes in a list of user_ids, item_ids, and ratings
+    def add_interactions(self, user_id, item_id, rating):
         
-    def addRating(self, user_id, item_id, rating):
-        # Check that requirements are met
-        assert (user_id in self.UI.index) == True, "User ID does not exist!"
-        assert (item_id in self.UI.columns) == True, "Movie ID does not exist!"
-        assert (self.UI.loc[user_id,item_id] == 0), "User-Item interaction already exists!"
-        assert rating > 0, "Rating needs to be [1,5]!"
-        assert rating < 5, "Rating needs to be [1,5]!"
+        assert (
+            len(user_id) == len(item_id) == len(rating)
+        ), "Input lists are not of the same length"
         
-        self.UI.loc[user_id,item_id] = rating
+        for i in range(len(user_id)):
+            # Check that requirements are met
+            assert (user_id[i] in self.UI.index) == True, "User ID does not exist!"
+            assert (item_id[i] in self.UI.columns) == True, "Movie ID does not exist!"
+            assert (self.UI.loc[user_id[i],item_id[i]] == 0), "User-Item interaction already exists!"
+            assert rating[i] > 0, "Rating needs to be [1,5]!"
+            assert rating[i] <= 5, "Rating needs to be [1,5]!"
+        
+            self.UI.loc[user_id[i],item_id[i]] = rating[i]
+            
         return None
+    
+    # return the current user-item interaction matrix
+    def get_interactions(self):
+        return self.UI
         
     # Function adds user and returns the ID of the new user
-    def addUser(self):
+    def add_user_auto(self):
         # create new row for new user (ID = len(self.UI)+1), initialise with 0
         self.UI.loc[len(self.UI)+1] = np.zeros(len(self.UI.columns))
         return len(self.UI)
         
     # Function adds movie and returns the ID of the new movie
-    def addItem(self):
+    def add_item_auto(self):
         # create new column for new movie (ID = len(self.UI.columns)+1), initialise with 0
         self.UI[len(self.UI.columns)+1] = 0
         return len(self.UI.columns)
@@ -143,7 +155,7 @@ class cluster:
     '''
     
     # Function adds user and returns the ID of the new user
-    def addUserID(self, user_id):
+    def add_user(self, user_id):
         # Check if user_id to be added already exists
         try:
             assert (user_id in self.UI.index) == False, "User ID already exists!"
@@ -156,7 +168,7 @@ class cluster:
         return user_id
         
     # Function adds movie and returns the ID of the new movie
-    def addItemID(self, item_id):
+    def add_item(self, item_id):
     # Check if item_id to be added already exists
         try:
             assert (item_id in self.UI.columns) == False, "Item ID already exists!"
@@ -176,7 +188,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.SVD(len(self.data.columns))
+        self.svd(len(self.data.columns))
         
         km = KMeans(n_clusters=n, init='k-means++', max_iter=300, n_init=10, random_state=0)
         self.km_pred = km.fit_predict(self.data)
@@ -193,7 +205,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.SVD(len(self.data.columns))
+        self.svd(len(self.data.columns))
         
         # variable scope limited to function
         km_scores= []
@@ -271,7 +283,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.SVD(len(self.data.columns))
+        latent = self.svd(len(self.data.columns))
         
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
         self.gmm_pred = gmm.fit_predict(self.data)
@@ -290,8 +302,7 @@ class cluster:
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
             proba.index += 1 # adjust index to match user
-            full = self.data.join(proba ,how='left')
-            return full
+            return [self.data, proba]
         else:
             self._logger.error("Invalid input. Enter 'all', 'pred' or 'proba'.")
             return None
@@ -308,7 +319,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.SVD(len(self.data.columns))
+        self.svd(len(self.data.columns))
         
         # variable scope limited to function
         gmm_aic = []
@@ -359,7 +370,7 @@ class cluster:
         
         return None
 
-    def plotScatter(self, show_cluster, model):
+    def plot_scatter(self, show_cluster, model):
         
         # logger warning if no clusters to plot/colour  
         if show_cluster:
