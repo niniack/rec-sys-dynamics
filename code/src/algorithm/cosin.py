@@ -120,7 +120,7 @@ class CosinSimilarity(SparseBasedAlgo):
         if explore:
             prediction_score_df = prediction_score_df[
                 (prediction_score_df["predicted_ratings"] == 0)
-                | (prediction_score_df["normalized_popularity"] < 0.2)
+                | (prediction_score_df["normalized_popularity"] < 0.25)
             ]
 
         prediction_score_df = prediction_score_df.sort_values(
