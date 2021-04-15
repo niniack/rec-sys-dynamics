@@ -282,8 +282,6 @@ class cluster:
             self._logger.warning('Return df format not provided. Default is "pred".')
             return None
         
-        # update SVD for dimensionality reducation
-        latent = self.svd(len(self.data.columns))
         
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
         self.gmm_pred = gmm.fit_predict(self.data)
@@ -303,7 +301,7 @@ class cluster:
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
             proba.index += 1 # adjust index to match user
             #full = self.data.join(proba ,how='left')
-            return [latent, proba]
+            return [self.data, proba]
         else:
             self._logger.error("Invalid input. Enter 'all', 'pred' or 'proba'.")
             return None
@@ -440,6 +438,7 @@ class analysis:
         # Enable logging
         self._logger = logging.getLogger(__name__)
         self.clusters = self.probas[0]['cluster'].unique()
+        self.cluster_pop = pd.DataFrame()
         
     def __str__(self):
         return 'Analysis Object'
