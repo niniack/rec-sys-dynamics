@@ -282,8 +282,6 @@ class cluster:
             self._logger.warning('Return df format not provided. Default is "pred".')
             return None
         
-        # update SVD for dimensionality reducation
-        latent = self.svd(len(self.data.columns))
         
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
         self.gmm_pred = gmm.fit_predict(self.data)
@@ -297,13 +295,13 @@ class cluster:
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
             proba.index += 1 # adjust index to match user
-            return [proba, latent]
+            return proba
         elif df == 'all':
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
             proba.index += 1 # adjust index to match user
-            full = self.data.join(proba ,how='left')
-            return full
+            #full = self.data.join(proba ,how='left')
+            return [self.data, proba]
         else:
             self._logger.error("Invalid input. Enter 'all', 'pred' or 'proba'.")
             return None
@@ -430,6 +428,66 @@ class cluster:
             self._logger.error("Input dataset contains less than 2 features. Insufficient data to plot.")
             return None
         
+#CLASS ANALYSIS TO PROCESS POST-SIMULATION DATA
+class analysis:
+    
+    # constructor taking in dataset (UI matrix), number of maximum clusters
+    def __init__(self, probas):
+        # assign list of proba dataframes
+        self.probas = probas
+        # Enable logging
+        self._logger = logging.getLogger(__name__)
+        self.clusters = self.probas[0]['cluster'].unique()
+        self.cluster_pop = pd.DataFrame()
+        
+    def __str__(self):
+        return 'Analysis Object'
+        
+    def cluster_populations(self):
+        if self.probas == None:
+            self._logger.error("List of probabilities is empty.")
+            return None
+        else:
+            self.cluster_pop = pd.DataFrame(index=range(1,len(self.probas)+1), columns=self.clusters.tolist().append('total'))
+            for t in range(1,len(self.probas)+1):
+                for c in self.clusters:
+                    self.cluster_pop.loc[t,c] =  len(self.probas[t-1].loc[self.probas[t-1]['cluster']==c])
+                self.cluster_pop.loc[t,'total'] = len(self.probas[t-1])
+            return self.cluster_pop
+            
+    def plot_counts(self):
+        if self.cluster_pop.empty:
+            self.cluster_populations()
+            
+        for i in self.cluster_pop.columns:
+            plt.plot(self.cluster_pop.index,self.cluster_pop[i], label = i)
+        plt.xlabel('iteration')
+        # Set the y axis label of the current axis.
+        plt.ylabel('#users')
+        # Set a title of the current axes.
+        plt.title('Number of Users in C0, C1, C2 over the simulation')
+        # show a legend on the plot
+        plt.legend()
+        # Display a figure.
+        plt.show()
+        
+    def plot_percent(self):
+        if self.cluster_pop.empty:
+            self.cluster_populations()
+            
+        for i in self.cluster_pop.columns[:-1]:
+            plt.plot(self.cluster_pop.index,(self.cluster_pop[i]/self.cluster_pop['total']), label = i)
+        plt.xlabel('iteration')
+        # Set the y axis label of the current axis.
+        plt.ylabel('#users')
+        # Set a title of the current axes.
+        plt.title('Number of Users in C0, C1, C2 over the simulation')
+        # show a legend on the plot
+        plt.legend()
+        # Display a figure.
+        plt.show()
+            
+                
 
 '''
 APPENDIX OF PREVIOUS FUNCTIONS:
