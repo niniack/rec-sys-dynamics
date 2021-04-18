@@ -4,10 +4,10 @@ import math
 
 import os
 from datetime import datetime
-from algorithm.ease import EASE
+from algorithm.cosin import CosinSimilarity as Algorithm
 import Datasets.movielens_recreate as dataset
 import matplotlib.pyplot as plt
-from analysis.cluster import cluster
+from analysis.cluster import cluster, analysis
 
 
 def getRatingsData():
@@ -20,7 +20,7 @@ def getUtilityData():
 ratings = getRatingsData()
 Full_Known_Utilities = getUtilityData()
 
-algo = EASE()
+algo = Algorithm()
 
 algo.fit(ratings)
 
@@ -114,17 +114,17 @@ def add_users(num_u, simulation_step, new_u):
     if simulation_step!=0:
         for user in [*range(num_u + (simulation_step-1)*new_u + 1, num_u + (simulation_step)*new_u + 1,1)]:
             algo.add_user(user)
-            # cluster_obj.addUserID(user)
+            cluster_obj.add_user(user)
             
 def add_items(num_i, simulation_step, new_i):
     if simulation_step!=0:
         for item in [*range(num_i + (simulation_step-1)*new_i + 1, num_i + (simulation_step)*new_i + 1,1)]:
             algo.add_item(item)
-            # cluster_obj.addItemID(item)
+            cluster_obj.add_item(item)
         
 def add_interactions(list_of_interactions):
     algo.add_interactions(list_of_interactions[0], list_of_interactions[1], list_of_interactions[2])
-    # cluster_obj.addRating(list_of_interactions[0], list_of_interactions[1], list_of_interactions[2])
+    cluster_obj.add_interactions(list_of_interactions[0], list_of_interactions[1], list_of_interactions[2])
     
 def get_rating(P_df_u_values, item):
     return round(1 + ((P_df_u_values[item]-P_df_u_values.min())*(5-1))/(P_df_u_values.max()-P_df_u_values.min()))
@@ -146,7 +146,7 @@ new_u = 10
 ratings_df = pd.DataFrame(algo.rating_matrix_.toarray(), index = np.arange(1, num_u+1,1), columns = np.arange(1, num_i+1,1))
 
 cluster_obj = cluster(ratings_df)
-cluster_obj.SVD(3)
+cluster_obj.svd(3)
 
 # # Intializing teh full utilities matrix
 # StartTime = datetime.now()
@@ -158,7 +158,7 @@ cluster_obj.SVD(3)
 
 #storing max utilities by user for thresholding
 # maximum_util_by_user = P_df.max(axis=1)
-probabilities = []
+results = []
 
 interactions = [[],[],[]]
 for t in range(simulation_steps):
@@ -185,7 +185,7 @@ for t in range(simulation_steps):
     #     print("There are nan ratings being added")
     
     
-    probabilities.append(get_probas(cluster_obj))
+    results.append(get_probas(cluster_obj))
     
     
     print("Completed iteration number: ", t+1)
