@@ -300,7 +300,6 @@ class cluster:
             cols = ['proba_C'+str(int) for int in range(n)]
             proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
             proba.index += 1 # adjust index to match user
-            #full = self.data.join(proba ,how='left')
             return [self.data, proba]
         else:
             self._logger.error("Invalid input. Enter 'all', 'pred' or 'proba'.")
@@ -437,18 +436,36 @@ class analysis:
         self.probas = probas
         # Enable logging
         self._logger = logging.getLogger(__name__)
-        self.clusters = self.probas[0]['cluster'].unique()
+        self.clusters = self.probas[0]['cluster'].unique().tolist()
         self.cluster_pop = pd.DataFrame()
         
     def __str__(self):
         return 'Analysis Object'
-        
+    
+    # Function to make cluster names consistent 
+    def rename_cluster(self,left_id,right_id):
+        # l and r are indexes of extreme left and extreme right users in synthetic dataset
+        for i in range(len(self.probas)):
+            # identify cluster names
+            groupA = self.probas[i].loc[left_id,'cluster']
+            groupB = self.probas[i].loc[right_id,'cluster']
+            groupC = 3 - (groupA + groupB)
+            
+            # rename columns
+            self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):-1, 'proba_C'+str(groupC):0},inplace = True)
+            # rename clusters
+            self.probas[i]['cluster'] = self.probas[i]['cluster'].replace([groupA,groupB,groupC],[1,-1,0])
+        #print(self.probas)
+        self.clusters = [1,-1,0]
+        return self.probas   
+    
+    # Function to calculate cluster composition
     def cluster_populations(self):
         if self.probas == None:
             self._logger.error("List of probabilities is empty.")
             return None
         else:
-            self.cluster_pop = pd.DataFrame(index=range(1,len(self.probas)+1), columns=self.clusters.tolist().append('total'))
+            self.cluster_pop = pd.DataFrame(index=range(1,len(self.probas)+1), columns=self.clusters.append('total'))
             for t in range(1,len(self.probas)+1):
                 for c in self.clusters:
                     self.cluster_pop.loc[t,c] =  len(self.probas[t-1].loc[self.probas[t-1]['cluster']==c])
