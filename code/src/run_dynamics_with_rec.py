@@ -139,7 +139,7 @@ num_u = 943
 num_i = 1682
 # num_i = 5
 num_rec = 30
-simulation_steps = 100
+simulation_steps = 5
 new_i = 10
 new_u = 10
 

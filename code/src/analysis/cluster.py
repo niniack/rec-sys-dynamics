@@ -282,6 +282,8 @@ class cluster:
             self._logger.warning('Return df format not provided. Default is "pred".')
             return None
         
+        # update SVD for dimensionality reducation
+        self.svd(len(self.data.columns))
         
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
         self.gmm_pred = gmm.fit_predict(self.data)
