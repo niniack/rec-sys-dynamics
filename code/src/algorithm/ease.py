@@ -107,18 +107,17 @@ class EASE(SparseBasedAlgo):
             }
         )
 
-        # Reduce candidate space to unseen items
         self.selector.fit(user_item_df)
+        # Update the item index on the candidate selector
         self.selector.items_ = self.item_index_
-        self.selector.users_ = self.user_index_
+        # DON'T update the item index on the candidate selector
+        # self.selector.users_ = self.user_index_
 
     def recommend(self, user_id, explore=False, candidates=None, ratings=None):
 
         # Reduce candidate space and store candidates with item ID
         if candidates is None:
             candidates = self.selector.candidates(user_id, ratings)
-
-        print(candidates)
 
         (user_index,) = np.where(self.user_index_ == user_id)[0]
 
@@ -127,8 +126,7 @@ class EASE(SparseBasedAlgo):
 
         if explore:
             prediction_score_df = prediction_score_df[
-                (prediction_score_df["normalized_popularity"] < 0.25)
-            ]
+                (prediction_score_df["normalized_popularity"] < 0.35)
 
         prediction_score_df = prediction_score_df.sort_values(
             by=["score"], ascending=False
