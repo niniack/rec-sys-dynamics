@@ -108,10 +108,10 @@ class EASE(SparseBasedAlgo):
         )
 
         self.selector.fit(user_item_df)
+
         # Update the item index on the candidate selector
-        self.selector.items_ = self.item_index_
-        # DON'T update the item index on the candidate selector
-        # self.selector.users_ = self.user_index_
+        item_diff = self.item_index_.difference(self.selector.items_)
+        self.selector.items_ = self.selector.items_.append(item_diff)
 
     def recommend(self, user_id, explore=False, candidates=None, ratings=None):
 
