@@ -31,88 +31,96 @@ from numpy import linalg as LA
 from numba import jit, njit, prange
 import numba
 
-#@numba.jit(nopython=True, parallel=True)
+# @numba.jit(nopython=True, parallel=True)
 @jit(nopython=True)
-#@njit(parallel=True)
-def matrix_factorization_pred(X,P,Q,K,steps,alpha,beta,Mask):
-#    Mask = (X!=0)
+# @njit(parallel=True)
+def matrix_factorization_pred(X, P, Q, K, steps, alpha, beta, Mask):
+    #    Mask = (X!=0)
     Q = Q.T
     error_list = np.zeros(steps)
     for step in range(steps):
         print(step)
-        #for each user
+        # for each user
         for i in prange(X.shape[0]):
-            #for each item
+            # for each item
             for j in range(X.shape[1]):
-                if X[i,j] > 0 :
+                if X[i, j] > 0:
 
-                    #calculate the error of the element
-                    eij = X[i,j] - np.dot(P[i,:],Q[:,j])
-                    #second norm of P and Q for regularilization
+                    # calculate the error of the element
+                    eij = X[i, j] - np.dot(P[i, :], Q[:, j])
+                    # second norm of P and Q for regularilization
                     sum_of_norms = 0
-                    #for k in xrange(K):
+                    # for k in xrange(K):
                     #    sum_of_norms += LA.norm(P[:,k]) + LA.norm(Q[k,:])
-                    #added regularized term to the error
+                    # added regularized term to the error
                     sum_of_norms += LA.norm(P) + LA.norm(Q)
-                    #print sum_of_norms
-                    eij += ((beta/2) * sum_of_norms)
-                    #compute the gradient from the error
+                    # print sum_of_norms
+                    eij += (beta / 2) * sum_of_norms
+                    # compute the gradient from the error
                     for k in range(K):
-                        P[i][k] = P[i][k] + alpha * ( 2 * eij * Q[k][j] - (beta * P[i][k]))
-                        Q[k][j] = Q[k][j] + alpha * (2 * eij * P[i][k] - (beta * Q[k][j]))
+                        P[i][k] = P[i][k] + alpha * (
+                            2 * eij * Q[k][j] - (beta * P[i][k])
+                        )
+                        Q[k][j] = Q[k][j] + alpha * (
+                            2 * eij * P[i][k] - (beta * Q[k][j])
+                        )
 
-        #compute total error
+        # compute total error
         error = 0
-        #for each user
+        # for each user
         extimated_X = np.trunc(P @ Q)
-        extimated_X = np.where(extimated_X>5, 5, extimated_X)
-        extimated_X = np.where(extimated_X<0, 0, extimated_X)
+        extimated_X = np.where(extimated_X > 5, 5, extimated_X)
+        extimated_X = np.where(extimated_X < 0, 0, extimated_X)
         extimated_error = np.multiply(X - extimated_X, Mask)
         error = LA.norm(extimated_error)
         error_list[step] = error
-        
+
         if error < 0.001:
             break
     return extimated_X, P, Q.T, error_list
 
 
-def matrix_factorization_pred_naive(X,P,Q,K,steps,alpha,beta,Mask):
-#    Mask = (X!=0)
+def matrix_factorization_pred_naive(X, P, Q, K, steps, alpha, beta, Mask):
+    #    Mask = (X!=0)
     Q = Q.T
     error_list = np.zeros(steps)
     for step in range(steps):
         print(step)
-        #for each user
+        # for each user
         for i in range(X.shape[0]):
-            #for each item
+            # for each item
             for j in range(X.shape[1]):
-                if X[i,j] > 0 :
+                if X[i, j] > 0:
 
-                    #calculate the error of the element
-                    eij = X[i,j] - np.dot(P[i,:],Q[:,j])
-                    #second norm of P and Q for regularilization
+                    # calculate the error of the element
+                    eij = X[i, j] - np.dot(P[i, :], Q[:, j])
+                    # second norm of P and Q for regularilization
                     sum_of_norms = 0
-                    #for k in xrange(K):
+                    # for k in xrange(K):
                     #    sum_of_norms += LA.norm(P[:,k]) + LA.norm(Q[k,:])
-                    #added regularized term to the error
+                    # added regularized term to the error
                     sum_of_norms += LA.norm(P) + LA.norm(Q)
-                    #print sum_of_norms
-                    eij += ((beta/2) * sum_of_norms)
-                    #compute the gradient from the error
+                    # print sum_of_norms
+                    eij += (beta / 2) * sum_of_norms
+                    # compute the gradient from the error
                     for k in range(K):
-                        P[i][k] = P[i][k] + alpha * ( 2 * eij * Q[k][j] - (beta * P[i][k]))
-                        Q[k][j] = Q[k][j] + alpha * (2 * eij * P[i][k] - (beta * Q[k][j]))
+                        P[i][k] = P[i][k] + alpha * (
+                            2 * eij * Q[k][j] - (beta * P[i][k])
+                        )
+                        Q[k][j] = Q[k][j] + alpha * (
+                            2 * eij * P[i][k] - (beta * Q[k][j])
+                        )
 
-        #compute total error
+        # compute total error
         error = 0
-        #for each user
+        # for each user
         extimated_X = np.trunc(P @ Q)
-        extimated_X = np.where(extimated_X>5, 5, extimated_X)
-        extimated_X = np.where(extimated_X<0, 0, extimated_X)
+        extimated_X = np.where(extimated_X > 5, 5, extimated_X)
+        extimated_X = np.where(extimated_X < 0, 0, extimated_X)
         extimated_error = np.multiply(X - extimated_X, Mask)
         error = LA.norm(extimated_error)
         error_list[step] = error
-        
+
         if error < 0.001:
             break
     return extimated_X, P, Q.T, error_list
@@ -123,7 +131,9 @@ class MatrixFactorization(SparseBasedAlgo):
     Recommend new items by completing the user-item rating matrix with regularized nonnegative matrix factorization
     """
 
-    def __init__(self, K=8, steps=100, alpha=0.0002, beta=float(0.02), gamma=0.5, selector=None):
+    def __init__(
+        self, K=8, steps=100, alpha=0.0002, beta=float(0.02), gamma=0.5, selector=None
+    ):
 
         # Set selector
         if selector is None:
@@ -145,7 +155,7 @@ class MatrixFactorization(SparseBasedAlgo):
         _logger = logging.getLogger(__name__)
 
     def __str__(self):
-        return 'MatrixFactorization'
+        return "MatrixFactorization"
 
     def get_num_users(self):
         return len(self.user_index_)
@@ -164,7 +174,7 @@ class MatrixFactorization(SparseBasedAlgo):
         self.user_index_ = users
         self.item_index_ = items
         # Calculate mask matrix from rating matrix
-        self.mask_matrix = (self.rating_matrix_ != 0)
+        self.mask_matrix = self.rating_matrix_ != 0
 
         # Calculate completed u-i matrix matrix with matrix factorization
         # Grab the input rating matrix and mask matrix
@@ -175,8 +185,9 @@ class MatrixFactorization(SparseBasedAlgo):
         # Q : an initial matrix of dimension M x K, where M is no of movies and K is hidden latent features
         Q = np.random.rand(M.shape[1], self.K)
 
-        self.full_matrix_, _, _, _ = matrix_factorization_pred(M.todense(), P, Q, self.K, self.steps, self.alpha,
-                                                               self.beta, M_s.todense())
+        self.full_matrix_, _, _, _ = matrix_factorization_pred(
+            M.todense(), P, Q, self.K, self.steps, self.alpha, self.beta, M_s.todense()
+        )
 
         # Reduce candidate space to unseen items
         self.selector.fit(ratings)
@@ -185,7 +196,7 @@ class MatrixFactorization(SparseBasedAlgo):
     def update(self):
 
         # Calculate mask matrix from rating matrix
-        self.mask_matrix = (self.rating_matrix_ != 0)
+        self.mask_matrix = self.rating_matrix_ != 0
 
         # Calculate completed u-i matrix matrix with matrix factorization
         # Grab the input rating matrix and mask matrix
@@ -196,9 +207,9 @@ class MatrixFactorization(SparseBasedAlgo):
         # Q : an initial matrix of dimension M x K, where M is no of movies and K is hidden latent features
         Q = np.random.rand(M.shape[1], self.K)
 
-        self.full_matrix_, _, _, _ = matrix_factorization_pred(M.todense(), P, Q, self.K, self.steps, self.alpha,
-                                                               self.beta, M_s.todense())
-
+        self.full_matrix_, _, _, _ = matrix_factorization_pred(
+            M.todense(), P, Q, self.K, self.steps, self.alpha, self.beta, M_s.todense()
+        )
 
         # Convert to dataframe for selector fit
 
@@ -215,7 +226,7 @@ class MatrixFactorization(SparseBasedAlgo):
         # DON'T update the item index on the candidate selector
         # self.selector.users_ = self.user_index_
 
-   # Provide a recommendation of top "n" movies given "user"
+    # Provide a recommendation of top "n" movies given "user"
     # The recommender uses the UnratedItemCandidateSelector by default and uses the ratings matrix
     # it was originally fit on
     def recommend(self, user_id, explore=False, candidates=None, ratings=None):
@@ -228,7 +239,9 @@ class MatrixFactorization(SparseBasedAlgo):
         (user_index,) = np.where(self.user_index_ == user_id)[0]
 
         # Predict ratings and scores for all unseen items
-        prediction_score_df = self.predict_for_user(user_index, self.full_matrix_, candidates)
+        prediction_score_df = self.predict_for_user(
+            user_index, self.full_matrix_, candidates
+        )
 
         if explore:
             prediction_score_df = prediction_score_df[
@@ -260,7 +273,7 @@ class MatrixFactorization(SparseBasedAlgo):
             item_pos = self.item_index_.get_loc(items[i])
 
             # Locations of ratings for item_pos
-            rating_locations, = np.where(rating_matrix_items == item_pos)
+            (rating_locations,) = np.where(rating_matrix_items == item_pos)
 
             # Store popularity of item based on number of total ratings
             item_popularity[i] = len(rating_locations)
