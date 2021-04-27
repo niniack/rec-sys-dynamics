@@ -222,9 +222,8 @@ class MatrixFactorization(SparseBasedAlgo):
 
         self.selector.fit(user_item_df)
         # Update the item index on the candidate selector
-        self.selector.items_ = self.item_index_
-        # DON'T update the item index on the candidate selector
-        # self.selector.users_ = self.user_index_
+        item_diff = self.item_index_.difference(self.selector.items_)
+        self.selector.items_ = self.selector.items_.append(item_diff)
 
     # Provide a recommendation of top "n" movies given "user"
     # The recommender uses the UnratedItemCandidateSelector by default and uses the ratings matrix
