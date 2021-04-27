@@ -86,8 +86,8 @@ class CosinSimilarity(SparseBasedAlgo):
 
         user_item_df = pd.DataFrame(
             data={
-                "user": [x + 1 for x in self.rating_matrix_.nonzero()[0]],
-                "item": [x + 1 for x in self.rating_matrix_.nonzero()[1]],
+                "user": [self.user_index_[x] for x in self.rating_matrix_.nonzero()[0]],
+                "item": [self.item_index_[x] for x in self.rating_matrix_.nonzero()[1]],
             }
         )
 

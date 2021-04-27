@@ -102,15 +102,16 @@ class EASE(SparseBasedAlgo):
         # Convert to dataframe for selector fit
         user_item_df = pd.DataFrame(
             data={
-                "user": [x + 1 for x in self.rating_matrix_.nonzero()[0]],
-                "item": [x + 1 for x in self.rating_matrix_.nonzero()[1]],
+                "user": [self.user_index_[x] for x in self.rating_matrix_.nonzero()[0]],
+                "item": [self.item_index_[x] for x in self.rating_matrix_.nonzero()[1]],
             }
         )
 
-        # Reduce candidate space to unseen items
         self.selector.fit(user_item_df)
-        self.selector.items_ = self.item_index_
-        self.selector.users_ = self.user_index_
+
+        # Update the item index on the candidate selector
+        item_diff = self.item_index_.difference(self.selector.items_)
+        self.selector.items_ = self.selector.items_.append(item_diff)
 
     def recommend(self, user_id, explore=False, candidates=None, ratings=None):
 
@@ -118,29 +119,46 @@ class EASE(SparseBasedAlgo):
         if candidates is None:
             candidates = self.selector.candidates(user_id, ratings)
 
-        print(candidates)
-
         (user_index,) = np.where(self.user_index_ == user_id)[0]
 
         # Predict ratings and scores for all unseen items
         prediction_score_df = self.predict_for_user(user_index, candidates)
 
         if explore:
-            pass
-        else:
-            prediction_score_df = prediction_score_df.sort_values(
-                by=["score"], ascending=False
-            )
+            prediction_score_df = prediction_score_df[
+                (prediction_score_df["normalized_popularity"] < 0.35)
+            ]
+
+        prediction_score_df = prediction_score_df.sort_values(
+            by=["score"], ascending=False
+        )
 
         return prediction_score_df
 
     def predict_for_user(self, user, items):
 
+        # Instantiate ratings and item_popularity vectors
+        item_popularity = np.zeros(len(items), dtype=float)
+
         # Grab item indices
         item_indices = []
 
-        for i in items:
-            item_indices.append(np.where(self.item_index_ == i)[0][0])
+        # Convert ratings matrix to COO matrix
+        coo_ratings = self.rating_matrix_.tocoo()
+        rating_matrix_items = coo_ratings.col
+
+        # For each unseen item
+        for i in range(len(items)):
+
+            # Item position given item i ID
+            item_pos = self.item_index_.get_loc(items[i])
+            item_indices.append(item_pos)
+
+            # Locations of ratings for item_pos
+            (rating_locations,) = np.where(rating_matrix_items == item_pos)
+
+            # Store popularity of item based on number of total ratings
+            item_popularity[i] = len(rating_locations)
 
         # Grab the score vector for given user index
         all_scores = self.score[user]
@@ -148,5 +166,13 @@ class EASE(SparseBasedAlgo):
         # Grab the unseen items
         unseen_item_scores = np.take(all_scores, item_indices)
 
-        results = {"score": unseen_item_scores}
+        # minmax scale the popularity of each item
+        normalized_popularity = np.interp(
+            item_popularity, (item_popularity.min(), item_popularity.max()), (0, +1)
+        )
+
+        results = {
+            "score": unseen_item_scores,
+            "normalized_popularity": normalized_popularity,
+        }
         return pd.DataFrame(results, index=items)
