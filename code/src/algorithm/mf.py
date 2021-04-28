@@ -39,7 +39,6 @@ def matrix_factorization_pred(X, P, Q, K, steps, alpha, beta, Mask):
     Q = Q.T
     error_list = np.zeros(steps)
     for step in range(steps):
-        print(step)
         # for each user
         for i in prange(X.shape[0]):
             # for each item
@@ -132,7 +131,14 @@ class MatrixFactorization(SparseBasedAlgo):
     """
 
     def __init__(
-        self, K=8, steps=100, alpha=0.0002, beta=float(0.02), gamma=0.5, selector=None
+        self,
+        K=8,
+        steps=100,
+        alpha=0.0002,
+        beta=float(0.02),
+        gamma=0.5,
+        explore_percent=0.3,
+        selector=None,
     ):
 
         # Set selector
@@ -146,6 +152,8 @@ class MatrixFactorization(SparseBasedAlgo):
         self.K = K
         self.alpha = alpha
         self.beta = beta
+
+        self.explore_percent = explore_percent
 
         # Determines the weight given to normalized popularity
         # This is the same parameter of alpha in cosin.py
@@ -243,9 +251,27 @@ class MatrixFactorization(SparseBasedAlgo):
         )
 
         if explore:
-            prediction_score_df = prediction_score_df[
+            # calculate number of items based on percentage
+            number_of_items = int(prediction_score_df.shape[0] * self.explore_percent)
+
+            # Grab items that have a predicted rating of 0
+            zero_predicted_ratings_df = prediction_score_df[
                 (prediction_score_df["predicted_ratings"] == 0)
-                | (prediction_score_df["normalized_popularity"] < 0.25)
+            ]
+
+            # Sort by normalized popularity
+            prediction_score_df = prediction_score_df.sort_values(
+                by=["normalized_popularity"], ascending=True
+            ).head(number_of_items)
+
+            # Concatenate the two dfs
+            prediction_score_df = pd.concat(
+                [prediction_score_df, zero_predicted_ratings_df]
+            )
+
+            # Drop duplicates
+            prediction_score_df = prediction_score_df[
+                ~prediction_score_df.index.duplicated()
             ]
 
         prediction_score_df = prediction_score_df.sort_values(

@@ -31,12 +31,14 @@ class EASE(SparseBasedAlgo):
 
     """
 
-    def __init__(self, selector=None):
+    def __init__(self, explore_percent=0.3, selector=None):
         # Set selector
         if selector is None:
             self.selector = basic.UnratedItemCandidateSelector()
         else:
             self.selector = selector
+
+        self.explore_percent = explore_percent
 
         # Enable logging
         _logger = logging.getLogger(__name__)
@@ -125,10 +127,15 @@ class EASE(SparseBasedAlgo):
         prediction_score_df = self.predict_for_user(user_index, candidates)
 
         if explore:
-            prediction_score_df = prediction_score_df[
-                (prediction_score_df["normalized_popularity"] < 0.35)
-            ]
+            # calculate number of items based on percentage
+            number_of_items = int(prediction_score_df.shape[0] * self.explore_percent)
 
+            # sort by normalized popularity
+            prediction_score_df = prediction_score_df.sort_values(
+                by=["normalized_popularity"], ascending=True
+            ).head(number_of_items)
+
+        # Sort by score
         prediction_score_df = prediction_score_df.sort_values(
             by=["score"], ascending=False
         )
