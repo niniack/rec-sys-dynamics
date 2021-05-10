@@ -14,7 +14,7 @@ import logging
 from sklearn import metrics
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
-from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import TruncatedSVD, PCA
 
 import plotly.offline as py
 import plotly.graph_objs as go
@@ -89,7 +89,7 @@ class movielens:
     
     def svd(self, n, dataset='UI'):
         self.UserItem()
-        self.UI_SVD =  TruncatedSVD(n_components = n)
+        self.UI_SVD =  TruncatedSVD(n_components = n, algorithm = 'arpack')
         self.UI = pd.DataFrame(self.UI_SVD.fit_transform(self.UI_matrix))
         self.UI.index += 1
         return self.UI
@@ -98,9 +98,11 @@ class movielens:
 class cluster:
 
     # constructor taking in dataset (UI matrix), number of maximum clusters
-    def __init__(self, UI):
+    def __init__(self, UI, threshold):
         # assign input rating matrix
         self.UI = UI
+        #assign PCA threshold
+        self.threshold = threshold
         # Enable logging
         self._logger = logging.getLogger(__name__)
         
@@ -108,9 +110,15 @@ class cluster:
         return 'Data Object'
     
     # perform dimensionality reduction to n latent features using SVD
-    def svd(self, n):
-        SVD =  TruncatedSVD(n_components = n)
-        self.data = pd.DataFrame(SVD.fit_transform(self.UI))
+    #def svd(self, n):
+    #    SVD =  TruncatedSVD(n_components = n, algorithm = 'arpack')
+    #    self.data = pd.DataFrame(SVD.fit_transform(self.UI))
+    #    self.data.index += 1
+    #    return None
+    
+    def svd(self):
+        pca = PCA(n_components = self.threshold, svd_solver='auto')
+        self.data = pd.DataFrame(pca.fit_transform(self.UI))
         self.data.index += 1
         return None
     
@@ -181,21 +189,32 @@ class cluster:
         return item_id
             
     # perform kmeans clustering for n clusters on data and return a dataframe with user and cluster number 
-    def kmeans(self, n):
+    def kmeans(self, n, df='pred', svd = True):
         
         if n is None:
             self._logger.warning('Number of clusters not provided')
             return None
         
-        # update SVD for dimensionality reducation
-        self.svd(len(self.data.columns))
-        
+        if svd == True:
+            # update SVD for dimensionality reducation
+            self.svd()
+            data = self.data
+        else:
+            data = self.UI
+            
         km = KMeans(n_clusters=n, init='k-means++', max_iter=300, n_init=10, random_state=0)
-        self.km_pred = km.fit_predict(self.data)
+        self.km_pred = km.fit_predict(data)
         self.km_pred = pd.DataFrame(self.km_pred, columns = ['cluster'])
         self.km_pred.index += 1 # adjust index to match user
-        #clustered_data = pd.concat([self.data, km_pred], axis=1)
-        return self.km_pred
+        
+        # Return new dataframe with clusters
+        if df == 'pred':
+            return self.km_pred
+        elif df == 'all':
+            return [data, self.km_pred]
+        else:
+            self._logger.error("Invalid input. Enter 'all' or 'pred'.")
+            return None
     
     # print graphs to evaluate kmeans clustering from 2 to n clusters using kmeans score, silhouette score and davies-bouldin score
     def kmeans_eval(self, n):
@@ -205,7 +224,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.svd(len(self.data.columns))
+        self.svd()
         
         # variable scope limited to function
         km_scores= []
@@ -266,7 +285,7 @@ class cluster:
         plt.show()
 
     # perform GaussianMixture clustering for n clusters on data and return a dataframe with user and cluster number
-    def gmm(self, n, covariance_type='full', df='pred'):
+    def gmm(self, n, covariance_type='full', df='pred', svd = True):
         # n = number of clusters
         # covariance_type is 'full', 'diag', 'tied' or 'spherical'
         # df is 'pred' for cluster predictions, 'proba' for cluster probabilities, and 'full' for input data combined with probabilities
@@ -282,27 +301,31 @@ class cluster:
             self._logger.warning('Return df format not provided. Default is "pred".')
             return None
         
-        # update SVD for dimensionality reducation
-        self.svd(len(self.data.columns))
+        if svd == True:
+            # update SVD for dimensionality reducation
+            self.svd()
+            data = self.data
+        else:
+            data = self.UI
         
         gmm = GaussianMixture(n_components=n, n_init=10, covariance_type=covariance_type, tol=1e-3, max_iter=500)
-        self.gmm_pred = gmm.fit_predict(self.data)
+        self.gmm_pred = gmm.fit_predict(data)
         self.gmm_pred = pd.DataFrame(self.gmm_pred, columns = ['cluster'])
         
-        # Return new datafram with clusters, and probability of belonging to a cluster 
+        # Return new dataframe with clusters, and probability of belonging to a cluster 
         if df == 'pred':
             self.gmm_pred.index += 1
             return self.gmm_pred
         elif df == 'proba':
             cols = ['proba_C'+str(int) for int in range(n)]
-            proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
+            proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(data), columns = cols))
             proba.index += 1 # adjust index to match user
             return proba
         elif df == 'all':
             cols = ['proba_C'+str(int) for int in range(n)]
-            proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(self.data), columns = cols))
+            proba = self.gmm_pred.join(pd.DataFrame(gmm.predict_proba(data), columns = cols))
             proba.index += 1 # adjust index to match user
-            return [self.data, proba]
+            return [data, proba]
         else:
             self._logger.error("Invalid input. Enter 'all', 'pred' or 'proba'.")
             return None
@@ -319,7 +342,7 @@ class cluster:
             return None
         
         # update SVD for dimensionality reducation
-        self.svd(len(self.data.columns))
+        self.svd()
         
         # variable scope limited to function
         gmm_aic = []
@@ -444,22 +467,38 @@ class analysis:
     def __str__(self):
         return 'Analysis Object'
     
-    # Function to make cluster names consistent 
     def rename_cluster(self,left_id,right_id):
         # l and r are indexes of extreme left and extreme right users in synthetic dataset
+        # for each iteration i
         for i in range(len(self.probas)):
             # identify cluster names
             groupA = self.probas[i].loc[left_id,'cluster']
             groupB = self.probas[i].loc[right_id,'cluster']
-            groupC = 3 - (groupA + groupB)
             
-            # rename columns
-            self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):-1, 'proba_C'+str(groupC):0},inplace = True)
+            if groupA == groupB:
+                self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 and -1 are both random neutrals now")
+                groupA = self.probas[i].loc[left_id,'cluster']
+                
+                if (3-groupA) == 3:
+                    #groupA is 0
+                    groupB = 1
+                    groupC = 2
+                else:
+                    #groupA is 1 or 2
+                    groupB = 3-groupA 
+                    groupC = 0
+            else:
+                groupC = 3-(groupA+groupB)
+            
+            #check if it is just predictions or predictions and probabilities 
+            if len(self.probas[i].columns) > 2:
+                # rename columns
+                self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):-1, 'proba_C'+str(groupC):0},inplace = True)
+            
             # rename clusters
             self.probas[i]['cluster'] = self.probas[i]['cluster'].replace([groupA,groupB,groupC],[1,-1,0])
-        #print(self.probas)
-        self.clusters = [1,-1,0]
-        return self.probas   
+        self.clusters = [-1,0,1]
+        return self.probas
     
     # Function to calculate cluster composition
     def cluster_populations(self):
@@ -467,7 +506,7 @@ class analysis:
             self._logger.error("List of probabilities is empty.")
             return None
         else:
-            self.cluster_pop = pd.DataFrame(index=range(1,len(self.probas)+1), columns=self.clusters.append('total'))
+            self.cluster_pop = pd.DataFrame(index=range(1,len(self.probas)+1), columns=(self.clusters + ['total']))
             for t in range(1,len(self.probas)+1):
                 for c in self.clusters:
                     self.cluster_pop.loc[t,c] =  len(self.probas[t-1].loc[self.probas[t-1]['cluster']==c])
@@ -484,7 +523,7 @@ class analysis:
         # Set the y axis label of the current axis.
         plt.ylabel('#users')
         # Set a title of the current axes.
-        plt.title('Number of Users in C0, C1, C2 over the simulation')
+        plt.title('Number of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
         # Display a figure.
@@ -500,12 +539,20 @@ class analysis:
         # Set the y axis label of the current axis.
         plt.ylabel('#users')
         # Set a title of the current axes.
-        plt.title('Number of Users in C0, C1, C2 over the simulation')
+        plt.title('Percentage of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
         # Display a figure.
         plt.show()
             
+    # Function to calculate adjacency matrix of weighted graph of users. Default similarity algorithm is Jaccard
+    def adj_matrix(self, sim = "cosin"):
+        # calculate similarity matrix 
+        if sim == "cosin":
+            print("cosin")
+        else:
+            self._logger.error("Invalid input for sim. Enter 'cosin' or 'euclidean'.")
+            return None
                 
 
 '''
