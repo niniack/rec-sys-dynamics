@@ -475,29 +475,46 @@ class analysis:
             groupA = self.probas[i].loc[left_id,'cluster']
             groupB = self.probas[i].loc[right_id,'cluster']
             
-            if groupA == groupB:
-                self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 and -1 are both random neutrals now")
-                groupA = self.probas[i].loc[left_id,'cluster']
-                
-                if (3-groupA) == 3:
-                    #groupA is 0
-                    groupB = 1
-                    groupC = 2
+            if len(self.probas[i].cluster.unique()) == 3:
+                if groupA == groupB:
+                    self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 and -1 are both random neutrals now")
+                    groupA = self.probas[i].loc[left_id,'cluster']
+
+                    if (3-groupA) == 3:
+                        #groupA is 0
+                        groupB = 1
+                        groupC = 2
+                    else:
+                        #groupA is 1 or 2
+                        groupB = 3-groupA 
+                        groupC = 0
                 else:
-                    #groupA is 1 or 2
-                    groupB = 3-groupA 
-                    groupC = 0
-            else:
-                groupC = 3-(groupA+groupB)
-            
-            #check if it is just predictions or predictions and probabilities 
-            if len(self.probas[i].columns) > 2:
-                # rename columns
-                self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):-1, 'proba_C'+str(groupC):0},inplace = True)
-            
-            # rename clusters
-            self.probas[i]['cluster'] = self.probas[i]['cluster'].replace([groupA,groupB,groupC],[1,-1,0])
-        self.clusters = [-1,0,1]
+                    groupC = 3-(groupA+groupB)
+                
+                #check if it is just predictions or predictions and probabilities 
+                if len(self.probas[i].columns) > 2:
+                    # rename columns
+                    self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):-1, 'proba_C'+str(groupC):0},inplace = True)
+
+                # rename clusters
+                self.probas[i]['cluster'] = self.probas[i]['cluster'].replace([groupA,groupB,groupC],[1,-1,0])
+                self.clusters = [-1,0,1]
+                
+            elif len(self.probas[i].cluster.unique()) == 2:
+                if groupA == groupB:
+                    self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 is random neutrals now")
+                    groupA = self.probas[i].loc[left_id,'cluster']
+                    groupB = 1-groupA
+                
+                #check if it is just predictions or predictions and probabilities 
+                if len(self.probas[i].columns) > 2:
+                    # rename columns
+                    self.probas[i].rename(columns={'proba_C'+str(groupA):1,'proba_C'+str(groupB):0},inplace = True)
+
+                # rename clusters
+                self.probas[i]['cluster'] = self.probas[i]['cluster'].replace([groupA,groupB],[1,0])
+                self.clusters = [0,1]
+                
         return self.probas
     
     # Function to calculate cluster composition
@@ -513,7 +530,7 @@ class analysis:
                 self.cluster_pop.loc[t,'total'] = len(self.probas[t-1])
             return self.cluster_pop
             
-    def plot_counts(self):
+    def plot_counts(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
             
@@ -526,10 +543,14 @@ class analysis:
         plt.title('Number of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
-        # Display a figure.
-        plt.show()
+        if show:
+            # Display a figure.
+            plt.show()
+        else:
+            #save plt to loc
+            plt.savefig(loc)
         
-    def plot_percent(self):
+    def plot_percent(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
             
@@ -542,8 +563,12 @@ class analysis:
         plt.title('Percentage of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
-        # Display a figure.
-        plt.show()
+        if show:
+            # Display a figure.
+            plt.show()
+        else:
+            #save plt to loc
+            plt.savefig(loc)
        
     '''
     # Function to calculate adjacency matrix of weighted graph of users. Default similarity algorithm is Jaccard
