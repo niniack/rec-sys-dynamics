@@ -17,7 +17,13 @@ from src.algorithm.ease import EASE
 from src.algorithm.mf import MatrixFactorization 
 import src.Datasets as datasets
 
-
+# function to convert dataset names to acronyms
+def shortform(str):
+    short = ""
+    for i in range(len(str)):
+        if str[i].isdigit() or str[i].isupper():
+            short +=str[i]
+    return short
 
 class simulate():
     
@@ -28,7 +34,7 @@ class simulate():
         
         # import dataset based on ds_name
         self.dataset = '/'+ds_name
-        
+        self.run_name = recsys+'_'+shortform(ds_name)+'_'
         # assign simulation parameters
         #self.prob_explore = prob_explore
         #self.new_i = n_i
@@ -235,9 +241,20 @@ class simulate():
 
         updated_ratings_df = pd.DataFrame(self.algo.rating_matrix_.toarray(), columns=np.arange(1,len(self.algo.rating_matrix_.toarray()[0])+1), index=np.arange(1,len(self.algo.rating_matrix_.toarray())+1))
         
-        # save the plot_counts() and plot_percent pngs
-        
         # save pickles of latents, results + final_UIs
+        directory = '../simulation_runs/'+self.run_name+str(n_i)+'_'+str(n_u)+'_'+str(n_r)+'_'+str(steps)
+        os.makedirs(directory)
+        # save updated ratings
+        updated_ratings_df.to_pickle(directory+'/final_UI.pkl.gzip', compression = 'gzip')
+
+        for i in range(len(latents)):
+            latents[i].to_pickle(directory+'/L'+str(i)+'pkl.gzip', compression = 'gzip')
+            results[i].to_pickle(directory+'/R'+str(i)+'pkl.gzip', compression = 'gzip')
+            
+        # save the plot_counts() and plot_percent pngs
+        run = analysis(results)
+        run.plot_counts(show=False, loc=directory+'/counts.png')
+        run.plot_percent(show=False, loc=directory+'/percent.png')
         
         return [latents, results, updated_ratings_df]
 

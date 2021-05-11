@@ -513,7 +513,7 @@ class analysis:
                 self.cluster_pop.loc[t,'total'] = len(self.probas[t-1])
             return self.cluster_pop
             
-    def plot_counts(self):
+    def plot_counts(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
             
@@ -526,10 +526,14 @@ class analysis:
         plt.title('Number of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
-        # Display a figure.
-        plt.show()
+        if show:
+            # Display a figure.
+            plt.show()
+        else:
+            #save plt to loc
+            plt.savefig(loc)
         
-    def plot_percent(self):
+    def plot_percent(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
             
@@ -542,8 +546,12 @@ class analysis:
         plt.title('Percentage of Users in right (-1), neutral (0), and left (-1) over the simulation')
         # show a legend on the plot
         plt.legend()
-        # Display a figure.
-        plt.show()
+        if show:
+            # Display a figure.
+            plt.show()
+        else:
+            #save plt to loc
+            plt.savefig(loc)
        
     '''
     # Function to calculate adjacency matrix of weighted graph of users. Default similarity algorithm is Jaccard
