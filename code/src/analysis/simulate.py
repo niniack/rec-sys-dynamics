@@ -237,24 +237,22 @@ class simulate():
             print("Completed iteration number: ", t+1)
             print("Time taken: ", datetime.now() - StartTime)
 
-
-
         updated_ratings_df = pd.DataFrame(self.algo.rating_matrix_.toarray(), columns=np.arange(1,len(self.algo.rating_matrix_.toarray()[0])+1), index=np.arange(1,len(self.algo.rating_matrix_.toarray())+1))
         
         # save pickles of latents, results + final_UIs
-        directory = '../simulation_runs/'+self.run_name+str(n_i)+'_'+str(n_u)+'_'+str(n_r)+'_'+str(steps)
-        os.makedirs(directory)
+        self.run_name = '../simulation_runs/'+self.run_name+str(n_i)+'_'+str(n_u)+'_'+str(n_r)+'_'+str(steps)
+        os.makedirs(self.run_name)
         # save updated ratings
-        updated_ratings_df.to_pickle(directory+'/final_UI.pkl.gzip', compression = 'gzip')
+        updated_ratings_df.to_pickle(self.run_name+'/final_UI.pkl.gzip', compression = 'gzip')
 
         for i in range(len(latents)):
-            latents[i].to_pickle(directory+'/L'+str(i)+'pkl.gzip', compression = 'gzip')
-            results[i].to_pickle(directory+'/R'+str(i)+'pkl.gzip', compression = 'gzip')
+            latents[i].to_pickle(self.run_name+'/L'+str(i)+'pkl.gzip', compression = 'gzip')
+            results[i].to_pickle(self.run_name+'/R'+str(i)+'pkl.gzip', compression = 'gzip')
             
         # save the plot_counts() and plot_percent pngs
-        run = analysis(results)
-        run.plot_counts(show=False, loc=directory+'/counts.png')
-        run.plot_percent(show=False, loc=directory+'/percent.png')
+        #run = analysis(results)
+        #run.plot_counts(show=False, loc=directory+'/counts.png')
+        #run.plot_percent(show=False, loc=directory+'/percent.png')
         
         return [latents, results, updated_ratings_df]
 
