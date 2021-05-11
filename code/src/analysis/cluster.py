@@ -544,7 +544,8 @@ class analysis:
         plt.legend()
         # Display a figure.
         plt.show()
-            
+       
+    '''
     # Function to calculate adjacency matrix of weighted graph of users. Default similarity algorithm is Jaccard
     def adj_matrix(self, sim = "cosin"):
         # calculate similarity matrix 
@@ -553,7 +554,123 @@ class analysis:
         else:
             self._logger.error("Invalid input for sim. Enter 'cosin' or 'euclidean'.")
             return None
-                
+    '''
+            
+class post_process():
+        
+    # constructor taking in dataset (UI matrix), number of maximum clusters
+    def __init__(self, latent_list, results_list, UI):
+        assert len(latent_list) == len(results_list), "Length of latents and results does not match"
+        assert len(results_list[len(results_list)-1]) == len(UI), "Number of users in final cluster results does not match the number of users in the final user-item interaction matrix"
+        
+        # assign input list of DFs
+        self.latents = latent_list
+        self.results = results_list
+        self.UI = UI
+        
+        # Enable logging
+        self._logger = logging.getLogger(__name__)
+
+        # Create Analysis Object for Clustering Probabilities
+        self.analysis_obj = analysis(self.results)
+        
+    def __str__(self):
+        return 'Post Processing Object'
+    
+    def rename_cluster(self,left_id,right_id):
+        # l and r are indexes of extreme left and extreme right users in synthetic dataset
+        return self.analysis_obj.rename_cluster(left_id,right_id)
+    
+    # Function to calculate cluster composition
+    def cluster_populations(self):
+        return self.analysis_obj.cluster_populations()
+            
+    def plot_counts(self):
+        self.analysis_obj.plot_counts()
+        
+    def plot_percent(self):
+        self.analysis_obj.plot_percent() 
+        
+    def examine(self, i, algo):
+    # n is the number of clusters
+    
+        # ensure number of 
+        if i >= len(self.latents):
+            self._logger.error("Argument 'i' is out of bounds. It needs to be between 0 and %d" % (len(self.latents)-1))
+            return None
+        
+        if not((algo == 'gmm') or (algo == 'kmeans')):
+            self._logger.error("Argument 'algo' needs to be either 'gmm' or 'kmeans'.")
+            return None
+        
+        n = len(self.results[0].cluster.unique())
+        
+        if (algo == 'gmm'):
+            gmm = GaussianMixture(n_components=n, n_init=10, covariance_type='full', tol=1e-3, max_iter=500)
+            pred = gmm.fit_predict(self.latents[i])
+            pred = pd.DataFrame(pred, columns = ['cluster'])
+            pred.index += 1 # adjust index to match user
+            
+        elif (algo == 'kmeans'):
+            km = KMeans(n_clusters=n, init='k-means++', max_iter=300, n_init=10, random_state=0)
+            pred = km.fit_predict(self.latents[i])
+            pred = pd.DataFrame(pred, columns = ['cluster'])
+            pred.index += 1 # adjust index to match user
+            
+        self.plot_scatter(i, pred, show_cluster = True)
+        return(pred)
+            
+    def plot_scatter(self, i, pred, show_cluster):
+        
+        # logger warning if no clusters to plot/colour  
+        if show_cluster:
+            marker = {'size': 3,'opacity': 0.8,'color':pred['cluster'],'colorscale':'Viridis'}
+        else:
+            marker = {'size': 3,'opacity': 0.8,'colorscale':'Viridis'}
+        
+        # check input dataset to plot
+        if len(self.latents[i].columns) >= 3:
+            if len(self.latents[i].columns) > 3:
+                self._logger.warning("Input dataset contains more than 3 features. 3D scatter plot will only plot first 3 features.")            
+            
+            # plot 3D scatter plot
+            # Configure Plotly to be rendered inline in the notebook.
+            py.init_notebook_mode()
+            # Configure the trace.
+            trace = go.Scatter3d(
+                x=self.latents[i][0],  # <-- Put your data instead
+                y=self.latents[i][1],  # <-- Put your data instead
+                z=self.latents[i][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker
+            )
+            # Configure the layout.
+            layout = go.Layout(
+                margin={'l': 0, 'r': 0, 'b': 0, 't': 0}
+            )
+            data = [trace]
+            plot_figure = go.Figure(data=data, layout=layout)
+            # Render the plot.
+            py.iplot(plot_figure)
+            return None
+
+        elif len(self.latents[i].columns) == 2:
+            self._logger.warning("Input dataset contains only 2 features. 2D scatter plot will be created.")
+            
+            # plot 2D scatter plot
+            fig = go.Figure(data=go.Scatter(
+                x=self.latents[i][0], 
+                y=self.latents[i][1], 
+                mode='markers', 
+                marker=marker))
+            fig.show()
+            return None
+        else:
+            self._logger.error("Input dataset contains less than 2 features. Insufficient data to plot.")
+            return None
+
+        
+    
 
 '''
 APPENDIX OF PREVIOUS FUNCTIONS:
