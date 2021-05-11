@@ -234,6 +234,11 @@ class simulate():
 
 
         updated_ratings_df = pd.DataFrame(self.algo.rating_matrix_.toarray(), columns=np.arange(1,len(self.algo.rating_matrix_.toarray()[0])+1), index=np.arange(1,len(self.algo.rating_matrix_.toarray())+1))
+        
+        # save the plot_counts() and plot_percent pngs
+        
+        # save pickles of latents, results + final_UIs
+        
         return [latents, results, updated_ratings_df]
 
 
