@@ -15,6 +15,7 @@ Research conducted for the Traffic Flow Dynamics and Computations Lab @ New York
 * Abdur Rehman (@ar4366)
 * Prajna Soni (@soniprajna)
 * Nishant Aswani (@niniack)
+* Chuhan Yang (@ChuhanYang)
 
 ## License
 
