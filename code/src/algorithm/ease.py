@@ -126,7 +126,7 @@ class EASE(SparseBasedAlgo):
 
         if explore:
             prediction_score_df = prediction_score_df[
-                (prediction_score_df["normalized_popularity"] < 0.35)
+                (prediction_score_df["normalized_popularity"] < 0.45)
             ]
 
         prediction_score_df = prediction_score_df.sort_values(

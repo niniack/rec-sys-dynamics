@@ -39,7 +39,7 @@ def matrix_factorization_pred(X, P, Q, K, steps, alpha, beta, Mask):
     Q = Q.T
     error_list = np.zeros(steps)
     for step in range(steps):
-        print(step)
+        #print(step)
         # for each user
         for i in prange(X.shape[0]):
             # for each item
@@ -245,7 +245,7 @@ class MatrixFactorization(SparseBasedAlgo):
         if explore:
             prediction_score_df = prediction_score_df[
                 (prediction_score_df["predicted_ratings"] == 0)
-                | (prediction_score_df["normalized_popularity"] < 0.25)
+                | (prediction_score_df["normalized_popularity"] < 0.35)
             ]
 
         prediction_score_df = prediction_score_df.sort_values(
