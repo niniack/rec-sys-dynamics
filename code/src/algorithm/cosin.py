@@ -32,7 +32,9 @@ class CosinSimilarity(SparseBasedAlgo):
 
     """
 
-    def __init__(self, min_neighbors=1, min_sim=0, alpha=0.5, selector=None):
+    def __init__(
+        self, min_neighbors=1, min_sim=0, alpha=0.5, explore_percent=0.3, selector=None
+    ):
 
         # Set selector
         if selector is None:
@@ -46,6 +48,8 @@ class CosinSimilarity(SparseBasedAlgo):
 
         # Determines the weight given to normalized popularity
         self.alpha = alpha
+
+        self.explore_percent = explore_percent
 
         # Enable logging
         _logger = logging.getLogger(__name__)
@@ -117,9 +121,27 @@ class CosinSimilarity(SparseBasedAlgo):
         )
 
         if explore:
-            prediction_score_df = prediction_score_df[
+            # calculate number of items based on percentage
+            number_of_items = int(prediction_score_df.shape[0] * self.explore_percent)
+
+            # Grab items that have a predicted rating of 0
+            zero_predicted_ratings_df = prediction_score_df[
                 (prediction_score_df["predicted_ratings"] == 0)
-                | (prediction_score_df["normalized_popularity"] < 0.40)
+            ]
+
+            # Sort by normalized popularity
+            prediction_score_df = prediction_score_df.sort_values(
+                by=["normalized_popularity"], ascending=True
+            ).head(number_of_items)
+
+            # Concatenate the two dfs
+            prediction_score_df = pd.concat(
+                [prediction_score_df, zero_predicted_ratings_df]
+            )
+
+            # Drop duplicates
+            prediction_score_df = prediction_score_df[
+                ~prediction_score_df.index.duplicated()
             ]
 
         prediction_score_df = prediction_score_df.sort_values(

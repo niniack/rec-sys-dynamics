@@ -3,6 +3,7 @@ import pandas as pd
 import os
 from algorithm.ease import EASE
 from algorithm.cosin import CosinSimilarity
+from algorithm.mf import MatrixFactorization
 import pandas.testing as pd_testing
 
 import Datasets.Small_Test_Dataset as dataset
@@ -12,7 +13,7 @@ def getRatingsData():
     return pd.read_parquet(os.path.dirname(dataset.__file__) + "/ratings.parquet.gzip")
 
 
-class TestSum(unittest.TestCase):
+class Tests(unittest.TestCase):
     def assertDataframeEqual(self, a, b, msg):
         try:
             pd_testing.assert_frame_equal(a, b)
@@ -24,7 +25,7 @@ class TestSum(unittest.TestCase):
 
     def ratings_fit(self):
         ratings = getRatingsData()
-        algo = EASE()
+        algo = MatrixFactorization()
         algo.fit(ratings)
         return ratings, algo
 
@@ -123,6 +124,25 @@ class TestSum(unittest.TestCase):
         self.assertNotEqual(
             first_rec.sort_index().index[0], second_rec.sort_index().index[0]
         )
+
+    def test_threshold_with_new_item(self):
+        ratings, algo = self.ratings_fit()
+        new_user_id = 500
+        new_item_id = 600
+
+        # Add user with ID 500
+        algo.add_user(new_user_id)
+
+        # Add item with ID 600
+        algo.add_item(new_item_id)
+
+        # Update
+        algo.update()
+
+        # Recommend items to user with explore setting
+        recs = algo.recommend(new_user_id, explore=True)
+
+        print(recs)
 
 
 if __name__ == "__main__":
