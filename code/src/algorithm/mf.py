@@ -37,7 +37,8 @@ import numba
 def matrix_factorization_pred(X, P, Q, K, steps, alpha, beta, Mask):
     #    Mask = (X!=0)
     Q = Q.T
-    error_list = np.zeros(steps)
+    error_list = np.zeros(steps + 1)
+    error_list[0] = 100000000
     for step in range(steps):
         # for each user
         for i in prange(X.shape[0]):
@@ -64,17 +65,15 @@ def matrix_factorization_pred(X, P, Q, K, steps, alpha, beta, Mask):
                             2 * eij * P[i][k] - (beta * Q[k][j])
                         )
 
-        # compute total error
-        error = 0
         # for each user
         extimated_X = np.trunc(P @ Q)
         extimated_X = np.where(extimated_X > 5, 5, extimated_X)
         extimated_X = np.where(extimated_X < 0, 0, extimated_X)
         extimated_error = np.multiply(X - extimated_X, Mask)
-        error = LA.norm(extimated_error)
-        error_list[step] = error
+        err_temp = LA.norm(extimated_error)
+        error_list[step + 1] = err_temp
 
-        if error < 0.001:
+        if np.abs(err_temp - error_list[step]) < 0.001:
             break
     return extimated_X, P, Q.T, error_list
 
