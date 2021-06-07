@@ -467,18 +467,22 @@ class analysis:
     def __str__(self):
         return 'Analysis Object'
     
-    def rename_cluster(self,left_id,right_id):
+    def rename_cluster(self):
         # l and r are indexes of extreme left and extreme right users in synthetic dataset
         # for each iteration i
         for i in range(len(self.probas)):
             # identify cluster names
-            groupA = self.probas[i].loc[left_id,'cluster']
-            groupB = self.probas[i].loc[right_id,'cluster']
+            groupA = int(self.probas[i][0:99].mode().cluster[0])
+            #print(groupA)
+            groupB = int(self.probas[i][900:999].mode().cluster[0])
+            #print(groupB)
+            #groupA = self.probas[i].loc[left_id,'cluster']
+            #groupB = self.probas[i].loc[right_id,'cluster']
             
             if len(self.probas[i].cluster.unique()) == 3:
                 if groupA == groupB:
                     self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 and -1 are both random neutrals now")
-                    groupA = self.probas[i].loc[left_id,'cluster']
+                    #groupA = self.probas[i].loc[left_id,'cluster']
 
                     if (3-groupA) == 3:
                         #groupA is 0
@@ -503,7 +507,7 @@ class analysis:
             elif len(self.probas[i].cluster.unique()) == 2:
                 if groupA == groupB:
                     self._logger.warning("Left and Right Users are in the same cluster. They are both in cluster '1'. Cluster 0 is random neutrals now")
-                    groupA = self.probas[i].loc[left_id,'cluster']
+                    #groupA = self.probas[i].loc[left_id,'cluster']
                     groupB = 1-groupA
                 
                 #check if it is just predictions or predictions and probabilities 
@@ -602,9 +606,9 @@ class post_process():
     def __str__(self):
         return 'Post Processing Object'
     
-    def rename_cluster(self,left_id,right_id):
+    def rename_cluster(self,l,r):
         # l and r are indexes of extreme left and extreme right users in synthetic dataset
-        return self.analysis_obj.rename_cluster(left_id,right_id)
+        return self.analysis_obj.rename_cluster()
     
     # Function to calculate cluster composition
     def cluster_populations(self):
