@@ -67,7 +67,7 @@ class simulate():
         return pd.read_parquet(os.path.dirname(datasets.__file__)+self.dataset+'/ratings.parquet.gzip')
 
     def getUtilityData(self):
-        return pd.read_pickle(os.path.dirname(datasets.__file__)+self.dataset+'/utility_Matrix.pkl')
+        return pd.read_pickle(os.path.dirname(datasets.__file__)+self.dataset+'/Utility_Matrix.pkl')
 
     def conv_index_to_bins(self, index):
         """Calculate bins to contain the index values.
