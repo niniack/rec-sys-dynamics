@@ -590,7 +590,7 @@ class post_process():
     # constructor taking in dataset (UI matrix), number of maximum clusters
     def __init__(self, latent_list, results_list, UI):
         assert len(latent_list) == len(results_list), "Length of latents and results does not match"
-        assert len(results_list[len(results_list)-1]) == len(UI), "Number of users in final cluster results does not match the number of users in the final user-item interaction matrix"
+        assert len(results_list[len(results_list)-1]) == len(UI[len(UI)-1]), "Number of users in final cluster results does not match the number of users in the final user-item interaction matrix"
         
         # assign input list of DFs
         self.latents = latent_list
@@ -650,56 +650,107 @@ class post_process():
         return(pred)
             
     def plot_scatter(self, i, pred, show_cluster):
-        
-        # logger warning if no clusters to plot/colour  
+        # Assign colours based on clusters
         if show_cluster:
-            marker = {'size': 3,'opacity': 0.8,'color':pred['cluster'],'colorscale':'Viridis'}
+            marker0 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 157, 0)'}
+            marker1 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 157)'}
+            marker2 = {'size': 3,'opacity': 0.8,'color':'rgb(157, 0, 0)'}
         else:
-            marker = {'size': 3,'opacity': 0.8,'colorscale':'Viridis'}
+            marker0 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
+            marker1 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
+            marker2 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
         
         # check input dataset to plot
         if len(self.latents[i].columns) >= 3:
-            if len(self.latents[i].columns) > 3:
-                self._logger.warning("Input dataset contains more than 3 features. 3D scatter plot will only plot first 3 features.")            
-            
-            # plot 3D scatter plot
-            # Configure Plotly to be rendered inline in the notebook.
-            py.init_notebook_mode()
-            # Configure the trace.
-            trace = go.Scatter3d(
-                x=self.latents[i][0],  # <-- Put your data instead
-                y=self.latents[i][1],  # <-- Put your data instead
-                z=self.latents[i][2],  # <-- Put your data instead
+            # Configure the 0 trace.
+            neutral = go.Scatter3d(
+                name = 'neutral',
+                x=self.latents[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
+                y=self.latents[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
+                z=self.latents[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
                 mode='markers',
-                marker=marker
+                marker=marker0
             )
-            # Configure the layout.
-            layout = go.Layout(
-                margin={'l': 0, 'r': 0, 'b': 0, 't': 0}
+            # Configure the 1 trace.
+            bias_1 = go.Scatter3d(
+                name = 'bias_1',
+                x=self.latents[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
+                y=self.latents[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
+                z=self.latents[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker1
             )
-            data = [trace]
-            plot_figure = go.Figure(data=data, layout=layout)
-            # Render the plot.
-            py.iplot(plot_figure)
-            return None
-
-        elif len(self.latents[i].columns) == 2:
-            self._logger.warning("Input dataset contains only 2 features. 2D scatter plot will be created.")
+            data = [neutral,bias_1]
             
-            # plot 2D scatter plot
-            fig = go.Figure(data=go.Scatter(
-                x=self.latents[i][0], 
-                y=self.latents[i][1], 
-                mode='markers', 
-                marker=marker))
-            fig.show()
-            return None
+            if (len(self.results[i].cluster.unique())==3):
+                # Configure the -1 trace.
+                bias_2 = go.Scatter3d(
+                    name = 'bias_2',
+                    x=self.latents[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
+                    y=self.latents[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
+                    z=self.latents[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
+                    mode='markers',
+                     marker=marker2
+                )
+                data.append(bias_2)
         else:
-            self._logger.error("Input dataset contains less than 2 features. Insufficient data to plot.")
-            return None
+            # Latents contains 2 or less latent features to reach 30% explained variance. 
+            # calculate latents from UI
+            temp = cluster(self.UI[i],3)
+            temp.svd()
+            temp_lats = temp.data
+            
+            # create traces
+            # Configure the 0 trace.
+            neutral = go.Scatter3d(
+                name = 'neutral',
+                x=temp_lats[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
+                y=temp_lats[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
+                z=temp_lats[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker0
+            )
+            # Configure the 1 trace.
+            bias_1 = go.Scatter3d(
+                name = 'bias_1',
+                x=temp_lats[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
+                y=temp_lats[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
+                z=temp_lats[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker1
+            )
+            data = [neutral,bias_1]
+            
+            if (len(self.results[i].cluster.unique())==3):
+                # Configure the -1 trace.
+                bias_2 = go.Scatter3d(
+                    name = 'bias_2',
+                    x=temp_lats[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
+                    y=temp_lats[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
+                    z=temp_lats[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
+                    mode='markers',
+                    marker=marker2
+                )
+                data.append(bias_2)
+                
+        if len(self.latents[i].columns) > 3:
+            self._logger.warning("30% variance explained by MORE than 3 features. 3D scatter plot will only plot first 3 features.")            
+            
+        elif len(self.latents[i].columns) < 3:
+            self._logger.warning("30% variance explained by LESS than 3 features. 3D scatter plot will plot first 3 features.")            
+            
+        # plot 3D scatter plot
+        # Configure Plotly to be rendered inline in the notebook.
+        py.init_notebook_mode()
 
-        
-    
+        # Configure the layout.
+        layout = go.Layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0})
+        plot_figure = go.Figure(data=data, layout=layout)
+
+        # Render the plot.
+        py.iplot(plot_figure)
+        return None
+
 
 '''
 APPENDIX OF PREVIOUS FUNCTIONS:
