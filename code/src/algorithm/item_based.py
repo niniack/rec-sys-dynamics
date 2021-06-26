@@ -32,11 +32,11 @@ from sklearn.neighbors import NearestNeighbors
 
 class ItemBasedCosinSimilarity(Recommender, Predictor):
     """
-    Recommend new items by finding items that are the most similar to already rated items by users using the cosin distance formula
+    Recommend new items by finding items that are the most similar to already rated items by users
 
     """
 
-    def __init__(self, n_neighbors=11, min_neighbors=1, min_sim=0, selector=None):
+    def __init__(self, n_neighbors=11, min_neighbors=1, min_sim=0, alpha=0.5, explore_percent=0.3, selector=None):
 
         # Set selector
         if selector is None:
@@ -48,6 +48,11 @@ class ItemBasedCosinSimilarity(Recommender, Predictor):
         self.min_neighbors = min_neighbors
         self.min_sim = min_sim
         self.n_neighbors = n_neighbors
+
+        # Determines the weight given to normalized popularity
+        self.alpha = alpha
+
+        self.explore_percent = explore_percent
 
         # Enable logging
         _logger = logging.getLogger(__name__)
