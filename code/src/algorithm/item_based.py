@@ -30,13 +30,13 @@ from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 
 
-class ItemBasedCosinSimilarity(Recommender, Predictor):
+class ItemBasedCosinSimilarity(SparseBasedAlgo):
     """
     Recommend new items by finding items that are the most similar to already rated items by users
 
     """
 
-    def __init__(self, n_neighbors=11, min_neighbors=1, min_sim=0, alpha=0.5, explore_percent=0.3, selector=None):
+    def __init__(self, n_neighbors=11, alpha=0.5, explore_percent=0.3, selector=None):
 
         # Set selector
         if selector is None:
@@ -45,8 +45,6 @@ class ItemBasedCosinSimilarity(Recommender, Predictor):
             self.selector = selector
 
         # Set parameters
-        self.min_neighbors = min_neighbors
-        self.min_sim = min_sim
         self.n_neighbors = n_neighbors
 
         # Determines the weight given to normalized popularity
@@ -59,6 +57,12 @@ class ItemBasedCosinSimilarity(Recommender, Predictor):
 
     def __str__(self):
         return 'ItemBasedCosinSimilarity'
+
+    def get_num_users(self):
+        return len(self.user_index_)
+
+    def get_num_items(self):
+        return len(self.item_index_)
 
     # Store the ratings matrix in sparse format and generate similarity matrix
     def fit(self, ratings, **kwargs):
