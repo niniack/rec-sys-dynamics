@@ -537,19 +537,21 @@ class analysis:
     def plot_counts(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
-            
+        
+        plt.clf()
         for i in self.cluster_pop.columns:
             plt.plot(self.cluster_pop.index,self.cluster_pop[i], label = i)
+       
         plt.xlabel('iteration')
         # Set the y axis label of the current axis.
         plt.ylabel('#users')
         # Set a title of the current axes.
-        plt.title('Number of Users in right (-1), neutral (0), and left (-1) over the simulation')
+        plt.title('Number of Users in each cluster over the simulation')
         # show a legend on the plot
         plt.legend()
         if show:
             # Display a figure.
-            plt.show()
+            plt.show(block=True)
         else:
             #save plt to loc
             plt.savefig(loc)
@@ -557,19 +559,21 @@ class analysis:
     def plot_percent(self, show=True, loc=None):
         if self.cluster_pop.empty:
             self.cluster_populations()
-            
+        
+        plt.clf()
         for i in self.cluster_pop.columns[:-1]:
             plt.plot(self.cluster_pop.index,(self.cluster_pop[i]/self.cluster_pop['total']), label = i)
+        plt.gca
         plt.xlabel('iteration')
         # Set the y axis label of the current axis.
         plt.ylabel('#users')
         # Set a title of the current axes.
-        plt.title('Percentage of Users in right (-1), neutral (0), and left (-1) over the simulation')
+        plt.title('Fraction of Users in each cluster over the simulation')
         # show a legend on the plot
         plt.legend()
         if show:
             # Display a figure.
-            plt.show()
+            plt.show(block=True)
         else:
             #save plt to loc
             plt.savefig(loc)
@@ -614,11 +618,11 @@ class post_process():
     def cluster_populations(self):
         return self.analysis_obj.cluster_populations()
             
-    def plot_counts(self):
-        self.analysis_obj.plot_counts()
+    def plot_counts(self, show=True, loc=None):
+        self.analysis_obj.plot_counts(show=show, loc=loc)
         
-    def plot_percent(self):
-        self.analysis_obj.plot_percent() 
+    def plot_percent(self, show=True, loc=None):
+        self.analysis_obj.plot_percent(show=show, loc=loc) 
         
     def examine(self, i, algo):
     # n is the number of clusters
