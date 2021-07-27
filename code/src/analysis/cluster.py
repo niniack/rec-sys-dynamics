@@ -8,6 +8,15 @@ The required packages can be found in requirements.txt
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+params = {'legend.fontsize': 'x-large',
+          'figure.figsize': (5, 3),
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large',
+         'font.size':8}
+plt.rcParams.update(params)
+
 
 import logging
 
@@ -540,21 +549,30 @@ class analysis:
         
         plt.clf()
         for i in self.cluster_pop.columns:
-            plt.plot(self.cluster_pop.index,self.cluster_pop[i], label = i)
+            if i == 0:
+                color = 'g'
+                lbl = "Neutral"
+            elif i == 1:
+                color = 'b'
+                lbl = "Bias 1"
+            elif i == -1:
+                color = 'r'
+                lbl = "Bias 2"
+            plt.plot(self.cluster_pop.index,self.cluster_pop[i], color, label = lbl)
        
-        plt.xlabel('iteration')
+        plt.xlabel('Iteration')
         # Set the y axis label of the current axis.
-        plt.ylabel('#users')
+        plt.ylabel('Number of users')
         # Set a title of the current axes.
-        plt.title('Number of Users in each cluster over the simulation')
+        #plt.title('Change in Cluster Size')
         # show a legend on the plot
-        plt.legend()
+        plt.legend(bbox_to_anchor=(1,0.5),loc='center left')
         if show:
             # Display a figure.
             plt.show(block=True)
         else:
             #save plt to loc
-            plt.savefig(loc)
+            plt.savefig(loc, bbox_inches='tight')
         
     def plot_percent(self, show=True, loc=None):
         if self.cluster_pop.empty:
@@ -562,21 +580,31 @@ class analysis:
         
         plt.clf()
         for i in self.cluster_pop.columns[:-1]:
-            plt.plot(self.cluster_pop.index,(self.cluster_pop[i]/self.cluster_pop['total']), label = i)
-        plt.gca
-        plt.xlabel('iteration')
+            if i == 0:
+                color = 'g'
+                lbl = "Neutral Community"
+            elif i == 1:
+                color = 'b'
+                lbl = "Bias Community 1"
+            elif i == -1:
+                color = 'r'
+                lbl = "Bias Community 2"
+            plt.plot(self.cluster_pop.index,(self.cluster_pop[i]/self.cluster_pop['total']), color, label = lbl)
+
+        plt.ylim(0,1)
+        plt.xlabel('Iteration')
         # Set the y axis label of the current axis.
-        plt.ylabel('#users')
+        plt.ylabel('Fraction of Users')
         # Set a title of the current axes.
-        plt.title('Fraction of Users in each cluster over the simulation')
+        #plt.title('Change in Cluster Size')
         # show a legend on the plot
-        plt.legend()
+        plt.legend(bbox_to_anchor=(0.5,-0.2),loc='upper center')
         if show:
             # Display a figure.
             plt.show(block=True)
         else:
             #save plt to loc
-            plt.savefig(loc)
+            plt.savefig(loc, bbox_inches='tight')
        
     '''
     # Function to calculate adjacency matrix of weighted graph of users. Default similarity algorithm is Jaccard
@@ -624,7 +652,7 @@ class post_process():
     def plot_percent(self, show=True, loc=None):
         self.analysis_obj.plot_percent(show=show, loc=loc) 
         
-    def examine(self, i, algo):
+    def examine(self, i, algo, camera_eye=dict(x=1.345,y=1.324,z=1.08), camera_center=dict(x=0.095,y=0.074,z=-0.16)):
     # n is the number of clusters
     
         # ensure number of 
@@ -650,10 +678,14 @@ class post_process():
             pred = pd.DataFrame(pred, columns = ['cluster'])
             pred.index += 1 # adjust index to match user
             
-        self.plot_scatter(i, pred, show_cluster = True)
-        return(pred)
-            
-    def plot_scatter(self, i, pred, show_cluster):
+        figure = self.plot_scatter(i, pred, show_cluster = True, camera_eye=camera_eye, camera_center=camera_center)
+        return(figure)
+    
+    def save_svg(self, i, algo, loc, camera_eye=dict(x=1.345,y=1.324,z=1.08), camera_center=dict(x=0.095,y=0.074,z=-0.16)):
+        fig = self.examine(i, algo, camera_eye=camera_eye, camera_center=camera_center)
+        fig.write_image(loc+".svg")
+        
+    def scene_camera(self, i, pred, show_cluster):
         # Assign colours based on clusters
         if show_cluster:
             marker0 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 157, 0)'}
@@ -748,12 +780,137 @@ class post_process():
         py.init_notebook_mode()
 
         # Configure the layout.
-        layout = go.Layout(margin={'l': 0, 'r': 0, 'b': 0, 't': 0})
-        plot_figure = go.Figure(data=data, layout=layout)
+        layout = go.Layout(margin={'l': 10, 'r': 10, 'b': 10, 't': 10})
+        #plot_figure=go.FigureWidget(data=data, layout=layout)
+        
+        plot_figure = go.FigureWidget(data=data, layout=layout) 
+        return plot_figure
+            
+    def plot_scatter(self, i, pred, show_cluster, camera_eye=dict(x=1.345,y=1.324,z=1.08), camera_center=dict(x=0.095,y=0.074,z=-0.16)):
+        # Assign colours based on clusters
+        if show_cluster:
+            marker0 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 157, 0)'}
+            marker1 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 157)'}
+            marker2 = {'size': 3,'opacity': 0.8,'color':'rgb(157, 0, 0)'}
+        else:
+            marker0 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
+            marker1 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
+            marker2 = {'size': 3,'opacity': 0.8,'color':'rgb(0, 0, 0)'}
+        
+        # check input dataset to plot
+        if len(self.latents[i].columns) >= 3:
+            # Configure the 0 trace.
+            neutral = go.Scatter3d(
+                name = 'neutral',
+                x=self.latents[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
+                y=self.latents[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
+                z=self.latents[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker0
+            )
+            # Configure the 1 trace.
+            bias_1 = go.Scatter3d(
+                name = 'bias_1',
+                x=self.latents[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
+                y=self.latents[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
+                z=self.latents[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker1
+            )
+            data = [neutral,bias_1]
+            
+            if (len(self.results[i].cluster.unique())==3):
+                # Configure the -1 trace.
+                bias_2 = go.Scatter3d(
+                    name = 'bias_2',
+                    x=self.latents[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
+                    y=self.latents[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
+                    z=self.latents[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
+                    mode='markers',
+                     marker=marker2
+                )
+                data.append(bias_2)
+        else:
+            # Latents contains 2 or less latent features to reach 30% explained variance. 
+            # calculate latents from UI
+            temp = cluster(self.UI[i],3)
+            temp.svd()
+            temp_lats = temp.data
+            
+            # create traces
+            # Configure the 0 trace.
+            neutral = go.Scatter3d(
+                name = 'neutral',
+                x=temp_lats[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
+                y=temp_lats[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
+                z=temp_lats[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker0
+            )
+            # Configure the 1 trace.
+            bias_1 = go.Scatter3d(
+                name = 'bias_1',
+                x=temp_lats[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
+                y=temp_lats[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
+                z=temp_lats[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
+                mode='markers',
+                marker=marker1
+            )
+            data = [neutral,bias_1]
+            
+            if (len(self.results[i].cluster.unique())==3):
+                # Configure the -1 trace.
+                bias_2 = go.Scatter3d(
+                    name = 'bias_2',
+                    x=temp_lats[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
+                    y=temp_lats[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
+                    z=temp_lats[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
+                    mode='markers',
+                    marker=marker2
+                )
+                data.append(bias_2)
+                
+        if len(self.latents[i].columns) > 3:
+            self._logger.warning("30% variance explained by MORE than 3 features. 3D scatter plot will only plot first 3 features.")            
+            
+        elif len(self.latents[i].columns) < 3:
+            self._logger.warning("30% variance explained by LESS than 3 features. 3D scatter plot will plot first 3 features.")            
+            
+        # plot 3D scatter plot
+        # Configure Plotly to be rendered inline in the notebook.
+        py.init_notebook_mode()
 
+        # Configure the layout.
+        layout = go.Layout(margin={'l': 10, 'r': 10, 'b': 10, 't': 10})
+        #plot_figure=go.FigureWidget(data=data, layout=layout)
+        
+        plot_figure = go.Figure(data=data, layout=layout)
+        plot_figure.update_layout(scene = dict(
+                    xaxis_title='Latent Feature 1',
+                    yaxis_title='Latent Feature 2',
+                    zaxis_title='Latent Feature 3',
+                    xaxis = dict(nticks=5, range=[-25,46], gridcolor="black"),
+                    yaxis = dict(nticks=5, range=[-25,38], gridcolor="black"),
+                    zaxis = dict(nticks=5, range=[-23,34], gridcolor="black")),
+                                 height=700,
+                                 scene_aspectmode='cube',
+                                 font_size=15,
+                                 showlegend=False,
+                                 legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1,
+                    xanchor="center",
+                    x=0.5,
+                    itemwidth=50),
+                                 legend_font_size=17)
+        plot_figure.update_scenes(camera_eye=camera_eye,
+                                 camera_center=camera_center)
+        
         # Render the plot.
         py.iplot(plot_figure)
-        return None
+        
+        return plot_figure
 
 
 '''
