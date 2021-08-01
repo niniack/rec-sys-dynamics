@@ -801,7 +801,7 @@ class post_process():
         if len(self.latents[i].columns) >= 3:
             # Configure the 0 trace.
             neutral = go.Scatter3d(
-                name = 'neutral',
+                name = 'Neutral Community',
                 x=self.latents[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
                 y=self.latents[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
                 z=self.latents[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
@@ -810,7 +810,7 @@ class post_process():
             )
             # Configure the 1 trace.
             bias_1 = go.Scatter3d(
-                name = 'bias_1',
+                name = 'Bias Community 1',
                 x=self.latents[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
                 y=self.latents[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
                 z=self.latents[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
@@ -822,7 +822,7 @@ class post_process():
             if (len(self.results[i].cluster.unique())==3):
                 # Configure the -1 trace.
                 bias_2 = go.Scatter3d(
-                    name = 'bias_2',
+                    name = 'Bias Community 2',
                     x=self.latents[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
                     y=self.latents[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
                     z=self.latents[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
@@ -840,7 +840,7 @@ class post_process():
             # create traces
             # Configure the 0 trace.
             neutral = go.Scatter3d(
-                name = 'neutral',
+                name = 'Neutral Community',
                 x=temp_lats[i][self.results[i].cluster == 0][0],  # <-- Put your data instead
                 y=temp_lats[i][self.results[i].cluster == 0][1],  # <-- Put your data instead
                 z=temp_lats[i][self.results[i].cluster == 0][2],  # <-- Put your data instead
@@ -849,7 +849,7 @@ class post_process():
             )
             # Configure the 1 trace.
             bias_1 = go.Scatter3d(
-                name = 'bias_1',
+                name = 'Bias Community 1',
                 x=temp_lats[i][self.results[i].cluster == 1][0],  # <-- Put your data instead
                 y=temp_lats[i][self.results[i].cluster == 1][1],  # <-- Put your data instead
                 z=temp_lats[i][self.results[i].cluster == 1][2],  # <-- Put your data instead
@@ -861,7 +861,7 @@ class post_process():
             if (len(self.results[i].cluster.unique())==3):
                 # Configure the -1 trace.
                 bias_2 = go.Scatter3d(
-                    name = 'bias_2',
+                    name = 'Bias Community 2',
                     x=temp_lats[i][self.results[i].cluster == -1][0],  # <-- Put your data instead
                     y=temp_lats[i][self.results[i].cluster == -1][1],  # <-- Put your data instead
                     z=temp_lats[i][self.results[i].cluster == -1][2],  # <-- Put your data instead
@@ -895,7 +895,7 @@ class post_process():
                                  height=700,
                                  scene_aspectmode='cube',
                                  font_size=15,
-                                 showlegend=False,
+                                 showlegend=None,
                                  legend=dict(
                     orientation="h",
                     yanchor="bottom",
@@ -903,7 +903,7 @@ class post_process():
                     xanchor="center",
                     x=0.5,
                     itemwidth=50),
-                                 legend_font_size=17)
+                                 legend_font_size=7)
         plot_figure.update_scenes(camera_eye=camera_eye,
                                  camera_center=camera_center)
         
